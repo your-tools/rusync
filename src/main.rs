@@ -151,6 +151,7 @@ fn copy(source: &Path, destination: &Path) -> io::Result<()> {
         done += num_read;
         let percent = ((done * 100) as u64) / src_size;
         print!("{number:>width$}%\r", number=percent, width=3);
+        let _ = io::stdout().flush();
         buf_writer.write(&buffer[0..num_read])?;
     }
     Ok(())
