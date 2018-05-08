@@ -1,3 +1,6 @@
+![Crates.io](https://img.shields.io/crates/v/rusync.svg)
+
+
 # rusync
 
 `rsync` implemented in rust.
