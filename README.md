@@ -1,7 +1,7 @@
-![Crates.io](https://img.shields.io/crates/v/rusync.svg)
-
-
 # rusync
+
+<a href="https://crates.io/crates/rusync"><img src="https://img.shields.io/crates/v/rusync.svg"/></a>
+
 
 `rsync` implemented in rust.
 
