@@ -29,7 +29,6 @@ There are *tons* of stuff in `rsync` we don't implement. Here's what's missing a
 * Symlinks handling
 * Preserving permissions
 * Option to delete extraneous files
-* Progress bar when files are big (easy)
 * Global progress bar (hard)
 
 For the rest, well, patches are welcome!
