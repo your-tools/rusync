@@ -1,0 +1,17 @@
+[package]
+name = "rusync"
+version = "0.1.0"
+authors = ["Dimitri Merejkowsky <d.merej@gmail.com>"]
+
+readme = "README.md"
+description = "rsync in rust"
+license = "BSD-3-Clause"
+
+keywords = ["rsync"]
+categories = ["command-line-utilities"]
+
+repository = "https://github.com/dmerejkowsky/rusync"
+
+[dependencies]
+pathdiff = "0.1.0"
+colored = "1.6"
