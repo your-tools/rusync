@@ -129,8 +129,8 @@ fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
     let dest_meta = fs::metadata(dest);
 
     match dest_meta {
-        Err(_) => return Ok(true),  // dest likely does not exist
-        Ok(dest_meta) => return Ok(src_meta.modified()? > dest_meta.modified()?)
+        Err(_) => Ok(true),  // dest likely does not exist
+        Ok(dest_meta) => Ok(src_meta.modified()? > dest_meta.modified()?)
     }
 }
 
