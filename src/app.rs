@@ -1,5 +1,6 @@
 extern crate pathdiff;
 extern crate colored;
+extern crate filetime;
 
 use std::fs;
 use std::fs::File;
@@ -13,6 +14,7 @@ use std::io::BufWriter;
 use std::io::Write;
 
 use colored::Colorize;
+use self::filetime::FileTime;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
@@ -109,13 +111,20 @@ fn to_io_error(message: String) -> io::Error {
 }
 
 fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
-    let src_meta = fs::metadata(src)?;
-    let dest_meta = fs::metadata(dest);
-
-    match dest_meta {
-        Err(_) => Ok(true),  // dest likely does not exist
-        Ok(dest_meta) => Ok(src_meta.modified()? > dest_meta.modified()?)
+    if !dest.exists() {
+        return Ok(true);
     }
+
+    let src_meta = fs::metadata(src)?;
+    let dest_meta = fs::metadata(dest)?;
+
+    let src_mtime = FileTime::from_last_modification_time(&src_meta);
+    let dest_mtime = FileTime::from_last_modification_time(&dest_meta);
+
+    let src_precise = src_mtime.seconds() * 1000 * 1000 * 1000 + src_mtime.nanoseconds() as u64;
+    let dest_precise = dest_mtime.seconds() * 1000 * 1000 * 1000 + dest_mtime.nanoseconds() as u64;
+
+    Ok(src_precise > dest_precise)
 }
 
 fn copy(source: &Path, destination: &Path) -> io::Result<()> {

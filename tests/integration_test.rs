@@ -1,13 +1,17 @@
 extern crate tempdir;
+extern crate filetime;
 
 extern crate rusync;
 
-use std::fs::File;
-use std::io::prelude::*;
+use std::io;
+use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use std::time;
+
+use filetime::FileTime;
 use tempdir::TempDir;
+
 
 use rusync::app;
 
@@ -32,6 +36,17 @@ fn setup_test(tmp_path: PathBuf) -> (PathBuf, PathBuf) {
     (src_path, dest_path)
 }
 
+fn make_recent(path: &Path) -> io::Result<()> {
+    let metadata = fs::metadata(&path)?;
+    let atime = FileTime::from_last_access_time(&metadata);
+    let mtime = FileTime::from_last_modification_time(&metadata);
+    let mut epoch = mtime.seconds_relative_to_1970();
+    epoch += 1;
+    let mtime = FileTime::from_seconds_since_1970(epoch, 0);
+    filetime::set_file_times(&path, atime, mtime)?;
+    Ok(())
+}
+
 #[test]
 fn test_fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
@@ -52,11 +67,8 @@ fn test_skip_up_to_date_files() {
     let stats = app::sync(&src_path, &dest_path).unwrap();
     assert_eq!(stats.up_to_date, 0);
 
-    let src_top = src_path.join("top.txt");
-    let mut file = File::create(src_top).expect("Could not open {:?} for writing");
-    file.write_all(b"new top\n").expect("");
-    let time_to_sleep = time::Duration::from_secs(1);
-    std::thread::sleep(time_to_sleep);
+    let src_top_txt = src_path.join("top.txt");
+    make_recent(&src_top_txt).expect("could not make top.txt recent");
     let stats = app::sync(&src_path, &dest_path).unwrap();
     assert_eq!(stats.copied, 1);
 }
