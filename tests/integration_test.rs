@@ -65,6 +65,10 @@ fn fresh_copy() {
     let src_top = src_path.join("top.txt");
     let dest_top = dest_path.join("top.txt");
     assert_same_contents(&src_top, &dest_top);
+
+    let link_dest = dest_path.join("a_dir/link_to_one");
+    let target = fs::read_link(link_dest).expect("failed to read metada");
+    assert_eq!(target.to_string_lossy(), "one.txt");
 }
 
 #[test]
