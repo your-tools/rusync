@@ -22,4 +22,4 @@ cmd = "python tools/check-changelog.py {new_version}"
 
 [[hook]]
 name = "Generate cargo.lock"
-cmd = "cargo package"
+cmd = "cargo package --allow-dirty"
