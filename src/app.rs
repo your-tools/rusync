@@ -99,7 +99,6 @@ impl Syncer {
         let top_dir = &self.source.clone();
         self.walk_dir(top_dir)?;
         let up_to_date = self.checked - self.copied;
-        println!("{} Synced {} files ({} up to date)", " ✓".color("green"), self.copied, up_to_date);
         Ok(Stats{copied: self.copied, total: self.checked, up_to_date: up_to_date})
     }
 }
