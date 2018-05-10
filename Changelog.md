@@ -1,3 +1,7 @@
+# v0.2.0
+
+* Try and preserve permissions after files are copied
+
 # v0.1.2
 
 * Add missing call to `stdout().flush()`
