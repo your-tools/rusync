@@ -1,11 +1,11 @@
 extern crate colored;
-
-mod sync;
+extern crate rusync;
 
 use std::env;
 use std::process;
 use std::path::PathBuf;
 use colored::Colorize;
+use rusync::sync;
 
 
 fn parse_args() -> Result<(PathBuf, PathBuf), String> {

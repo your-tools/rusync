@@ -3,20 +3,15 @@ extern crate colored;
 extern crate filetime;
 
 use std::io;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::io::BufWriter;
-use std::io::Write;
 use std::fs;
-use std::fs::File;
 use std::fs::DirEntry;
 use std::path::Path;
 use std::path::PathBuf;
 
 use self::colored::Colorize;
-use self::filetime::FileTime;
 
-const BUFFER_SIZE: usize = 100 * 1024;
+use fsops;
+
 
 pub struct Stats {
     pub total: u64,
@@ -59,7 +54,7 @@ impl Syncer {
     fn get_rel_path(&self, entry: &Path) -> io::Result<PathBuf> {
         let rel_path = pathdiff::diff_paths(&entry, &self.source);
         if rel_path.is_none() {
-            Err(to_io_error(format!("Could not get relative path from {} to {}",
+            Err(fsops::to_io_error(format!("Could not get relative path from {} to {}",
                         &self.source.to_string_lossy(),
                         &entry.to_string_lossy())))
         } else {
@@ -72,7 +67,7 @@ impl Syncer {
 
         let parent_rel_path = rel_path.parent();
         if let None = parent_rel_path {
-            return Err(to_io_error(
+            return Err(fsops::to_io_error(
                 format!("Could not get parent path of {}", rel_path.to_string_lossy())
             ))
         }
@@ -86,13 +81,13 @@ impl Syncer {
     }
 
     fn copy_if_more_recent(&mut self, src: &Path, dest: &Path)  -> io::Result<()>{
-        let more_recent = more_recent_than(&src, &dest)?;
+        let more_recent = fsops::more_recent_than(&src, &dest)?;
         let rel_src = self.get_rel_path(&src)?;
         self.checked += 1;
         if more_recent {
             println!("{} {}", "->".color("blue"), rel_src.to_string_lossy().bold());
             self.copied += 1;
-            return copy(&src, &dest);
+            return fsops::copy(&src, &dest);
         }
         Ok(())
     }
@@ -105,67 +100,6 @@ impl Syncer {
     }
 }
 
-
-fn to_io_error(message: String) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, message)
-}
-
-fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
-    if !dest.exists() {
-        return Ok(true);
-    }
-
-    let src_meta = fs::metadata(src)?;
-    let dest_meta = fs::metadata(dest)?;
-
-    let src_mtime = FileTime::from_last_modification_time(&src_meta);
-    let dest_mtime = FileTime::from_last_modification_time(&dest_meta);
-
-    let src_precise = src_mtime.seconds() * 1000 * 1000 * 1000 + src_mtime.nanoseconds() as u64;
-    let dest_precise = dest_mtime.seconds() * 1000 * 1000 * 1000 + dest_mtime.nanoseconds() as u64;
-
-    Ok(src_precise > dest_precise)
-}
-
-fn copy_perms(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
-    let permissions = metadata.permissions();
-    let file = File::create(path)?;
-    file.set_permissions(permissions)?;
-    Ok(())
-}
-
-fn copy(source: &Path, destination: &Path) -> io::Result<()> {
-    let src_path = File::open(source)?;
-    let src_meta = fs::metadata(source)?;
-    let src_size = src_meta.len();
-    let mut done = 0;
-    let mut buf_reader = BufReader::new(src_path);
-    let dest_path = File::create(destination)?;
-    let mut buf_writer = BufWriter::new(dest_path);
-    let mut buffer = vec![0; BUFFER_SIZE];
-    loop {
-        let num_read = buf_reader.read(&mut buffer)?;
-        if num_read == 0 {
-            break;
-        }
-        done += num_read;
-        let percent = ((done * 100) as u64) / src_size;
-        print!("{number:>width$}%\r", number=percent, width=3);
-        let _ = io::stdout().flush();
-        buf_writer.write(&buffer[0..num_read])?;
-    }
-    // This is allowed to fail, for instance when
-    // copying from an ext4 to a fat32 partition
-    let copy_outcome = copy_perms(&destination, &src_meta);
-    if let Err(err) = copy_outcome {
-        println!("{} Failed to preserve permissions for {}: {}",
-                 "Warning".yellow(),
-                 destination.to_string_lossy().bold(),
-                 err
-      );
-    }
-    Ok(())
-}
 
 pub fn sync(source: &Path, destination: &Path) -> io::Result<Stats> {
     let mut syncer = Syncer::new(&source, &destination);
