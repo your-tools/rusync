@@ -2,16 +2,16 @@ extern crate pathdiff;
 extern crate colored;
 extern crate filetime;
 
-use std::fs;
-use std::fs::File;
-use std::fs::DirEntry;
-use std::path::Path;
-use std::path::PathBuf;
 use std::io;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
+use std::fs;
+use std::fs::File;
+use std::fs::DirEntry;
+use std::path::Path;
+use std::path::PathBuf;
 
 use colored::Colorize;
 use self::filetime::FileTime;
@@ -127,6 +127,13 @@ fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
     Ok(src_precise > dest_precise)
 }
 
+fn copy_metadata(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
+    let permissions = metadata.permissions();
+    let file = File::create(path)?;
+    file.set_permissions(permissions)?;
+    Ok(())
+}
+
 fn copy(source: &Path, destination: &Path) -> io::Result<()> {
     let src_path = File::open(source)?;
     let src_meta = fs::metadata(source)?;
@@ -146,6 +153,16 @@ fn copy(source: &Path, destination: &Path) -> io::Result<()> {
         print!("{number:>width$}%\r", number=percent, width=3);
         let _ = io::stdout().flush();
         buf_writer.write(&buffer[0..num_read])?;
+    }
+    // This is allowed to fail, for instance when
+    // copying from an ext4 to a fat32 partition
+    let copy_outcome = copy_metadata(&destination, &src_meta);
+    if let Err(err) = copy_outcome {
+        println!("{} Failed to preserve metadata for {}: {}",
+                 "Warning".yellow(),
+                 destination.to_string_lossy().bold(),
+                 err
+      );
     }
     Ok(())
 }

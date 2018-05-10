@@ -5,6 +5,7 @@ extern crate rusync;
 
 use std::io;
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -23,6 +24,13 @@ fn assert_same_contents(a: &PathBuf, b: &PathBuf) {
              .status()
              .expect("Failed to execute process");
     assert!(status.success(), "{:?} and {:?} differ", a, b)
+}
+
+fn assert_executable(path: &Path) {
+    let metadata = std::fs::metadata(&path).expect(&format!("Could not get metadata of {:?}", path));
+    let permissions = metadata.permissions();
+    let mode = permissions.mode();
+    assert!(mode & 0o111 != 0, "{:?} does not appear to be executable", path);
 }
 
 fn setup_test(tmp_path: PathBuf) -> (PathBuf, PathBuf) {
@@ -71,4 +79,15 @@ fn skip_up_to_date_files() {
     make_recent(&src_top_txt).expect("could not make top.txt recent");
     let stats = app::sync(&src_path, &dest_path).unwrap();
     assert_eq!(stats.copied, 1);
+}
+
+#[test]
+fn preserve_perms() {
+    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+    let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
+
+    app::sync(&src_path, &dest_path).expect("sync failed");
+
+    let dest_exe = &dest_path.join("a_dir/foo.exe");
+    assert_executable(&dest_exe);
 }
