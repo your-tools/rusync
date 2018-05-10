@@ -8,8 +8,6 @@ use std::fs::DirEntry;
 use std::path::Path;
 use std::path::PathBuf;
 
-use self::colored::Colorize;
-
 use fsops;
 
 
@@ -27,7 +25,6 @@ struct Syncer {
 }
 
 impl Syncer {
-
     fn new(source: &Path, destination: &Path) -> Syncer {
         Syncer {
             source: source.to_path_buf(),
@@ -84,10 +81,11 @@ impl Syncer {
         let more_recent = fsops::more_recent_than(&src, &dest)?;
         let rel_src = self.get_rel_path(&src)?;
         self.checked += 1;
+        // Name that would be displayed during copy
+        let display_name = rel_src.to_string_lossy();
         if more_recent {
-            println!("{} {}", "->".color("blue"), rel_src.to_string_lossy().bold());
             self.copied += 1;
-            return fsops::copy(&src, &dest);
+            return fsops::copy(&String::from(display_name), &src, &dest);
         }
         Ok(())
     }

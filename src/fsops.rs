@@ -51,15 +51,19 @@ fn copy_perms(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
     Ok(())
 }
 
-fn copy_link(src_link: &Path, dest: &Path) -> io::Result<()> {
+fn copy_link(name: &String, src_link: &Path, dest: &Path) -> io::Result<()> {
     let src_target =  std::fs::read_link(src_link)?;
-    println!("{:?} -> {:?}", dest, src_target);
     let is_link_outcome = is_link(dest);
     match is_link_outcome {
         Ok(true) => {
-            // Always safe to delete, no risk of data loss :)
-            println!("rm {:?}", dest);
-            let _ = fs::remove_file(dest);
+            let dest_target = std::fs::read_link(dest)?;
+            if dest_target != src_target {
+                println!("{} {}", "--".red(), name.bold());
+                fs::remove_file(dest)?
+            } else {
+               return Ok(())
+            }
+
         }
         Ok(false) => {
             // Never safe to delete
@@ -69,12 +73,13 @@ fn copy_link(src_link: &Path, dest: &Path) -> io::Result<()> {
             // OK, dest does not exist
         }
     }
+    println!("{} {} -> {}", "++".blue(), name.bold(), src_target.to_string_lossy());
     unix::fs::symlink(src_target, &dest)
 }
 
-pub fn copy(source: &Path, destination: &Path) -> io::Result<()> {
+pub fn copy(name: &String, source: &Path, destination: &Path) -> io::Result<()> {
     if is_link(source)? {
-        return copy_link(&source, destination)
+        return copy_link(&name, &source, destination)
     }
     let src_path = File::open(source)?;
     let src_meta = fs::metadata(source)?;
@@ -84,6 +89,7 @@ pub fn copy(source: &Path, destination: &Path) -> io::Result<()> {
     let dest_path = File::create(destination)?;
     let mut buf_writer = BufWriter::new(dest_path);
     let mut buffer = vec![0; BUFFER_SIZE];
+    println!("{} {}", "++".green(), name.bold());
     loop {
         let num_read = buf_reader.read(&mut buffer)?;
         if num_read == 0 {
@@ -158,7 +164,7 @@ fn copy_link_dest_does_not_exist() {
     let src_link = setup_copy_test(tmp_path);
 
     let new_link = &tmp_path.join("new");
-    copy_link(&src_link, &new_link).expect("");
+    copy_link(&String::from("src_link"), &src_link, &new_link).expect("");
     assert_links_to("src", &new_link);
 }
 
@@ -170,7 +176,7 @@ fn copy_link_dest_is_a_broken_link() {
 
     let broken_link = &tmp_path.join("broken");
     create_link("no-such-file", &broken_link);
-    copy_link(&src_link, &broken_link).expect("");
+    copy_link(&String::from("src_link"), &src_link, &broken_link).expect("");
     assert_links_to("src", &broken_link);
 }
 
@@ -184,7 +190,7 @@ fn copy_link_dest_doest_not_point_to_correct_location() {
     create_file(&old_dest);
     let existing_link = tmp_path.join("existing");
     create_link("old", &existing_link);
-    copy_link(&src_link, &existing_link).expect("");
+    copy_link(&String::from("src_link"), &src_link, &existing_link).expect("");
     assert_links_to("src", &existing_link);
 }
 
@@ -196,7 +202,7 @@ fn copy_link_dest_is_a_regular_file() {
 
     let existing_file = tmp_path.join("existing");
     create_file(&existing_file);
-    let outcome = copy_link(&src_link, &existing_file);
+    let outcome = copy_link(&String::from("src_link"), &src_link, &existing_file);
     assert!(outcome.is_err());
     let err = outcome.err().unwrap();
     let desc = err.description();
