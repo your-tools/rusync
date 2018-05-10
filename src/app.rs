@@ -16,19 +16,25 @@ use colored::Colorize;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
+pub struct Stats {
+    pub total: u64,
+    pub copied: u64,
+    pub up_to_date: u64
+}
+
 struct Syncer {
     pub source: PathBuf,
     pub destination: PathBuf,
-    pub checked: u32,
-    pub copied: u32,
+    checked: u64,
+    copied: u64,
 }
 
 impl Syncer {
 
-    fn new(source: PathBuf, destination: PathBuf) -> Syncer {
+    fn new(source: &Path, destination: &Path) -> Syncer {
         Syncer {
-            source: source,
-            destination: destination,
+            source: source.to_path_buf(),
+            destination: destination.to_path_buf(),
             checked: 0,
             copied: 0
         }
@@ -89,12 +95,12 @@ impl Syncer {
         Ok(())
     }
 
-    fn do_sync(&mut self) -> io::Result<()> {
+    fn sync(&mut self) -> io::Result<(Stats)> {
         let top_dir = &self.source.clone();
         self.walk_dir(top_dir)?;
         let up_to_date = self.checked - self.copied;
         println!("{} Synced {} files ({} up to date)", " ✓".color("green"), self.copied, up_to_date);
-        Ok(())
+        Ok(Stats{copied: self.copied, total: self.checked, up_to_date: up_to_date})
     }
 }
 
@@ -136,13 +142,13 @@ fn copy(source: &Path, destination: &Path) -> io::Result<()> {
     Ok(())
 }
 
-pub fn sync(source: PathBuf, destination: PathBuf) -> io::Result<()> {
+pub fn sync(source: &Path, destination: &Path) -> io::Result<Stats> {
     println!("{} Syncing from {} to {} …",
              "::".color("blue"),
              source.to_string_lossy().bold(),
              destination.to_string_lossy().bold()
     );
 
-    let mut syncer = Syncer::new(source, destination);
-    syncer.do_sync()
+    let mut syncer = Syncer::new(&source, &destination);
+    syncer.sync()
 }

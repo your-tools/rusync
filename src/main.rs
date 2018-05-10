@@ -5,6 +5,7 @@ mod app;
 use std::env;
 use std::process;
 use std::path::PathBuf;
+use colored::Colorize;
 
 
 fn parse_args() -> Result<(PathBuf, PathBuf), String> {
@@ -27,9 +28,15 @@ fn main() {
     }
     let (source, destination) = parsed.unwrap();
 
-    if let Err(err) = app::sync(source, destination) {
-        eprintln!("{}", err);
-        process::exit(1);
+    let outcome = app::sync(&source, &destination);
+    match outcome {
+        Err(err) => {
+            eprintln!("{}", err);
+            process::exit(1);
+        },
+        Ok(stats) => {
+            println!("{} Synced {} files ({} up to date)", " ✓".color("green"), stats.copied, stats.up_to_date);
+            process::exit(0);
+        }
     }
-    process::exit(0);
 }
