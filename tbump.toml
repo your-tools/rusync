@@ -1,5 +1,5 @@
 [version]
-current = "0.1.1"
+current = "0.1.2"
 regex = '''
   (?P<major>\d+)
   \.
@@ -15,3 +15,11 @@ message_template = "Bump to {new_version}"
 [[file]]
 src = "Cargo.toml"
 search = 'version = "{current_version}"'
+
+[[hook]]
+name = "Check changelog"
+cmd = "python tools/check-changelog.py {new_version}"
+
+[[hook]]
+name = "Generate cargo.lock"
+cmd = "cargo package"
