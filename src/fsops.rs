@@ -51,7 +51,7 @@ fn copy_perms(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
     Ok(())
 }
 
-fn copy_link(name: &String, src_link: &Path, dest: &Path) -> io::Result<()> {
+fn copy_link(name: &String, src_link: &Path, dest: &Path) -> io::Result<(bool)> {
     let src_target =  std::fs::read_link(src_link)?;
     let is_link_outcome = is_link(dest);
     match is_link_outcome {
@@ -61,7 +61,7 @@ fn copy_link(name: &String, src_link: &Path, dest: &Path) -> io::Result<()> {
                 println!("{} {}", "--".red(), name.bold());
                 fs::remove_file(dest)?
             } else {
-               return Ok(())
+               return Ok(false)
             }
 
         }
@@ -74,13 +74,11 @@ fn copy_link(name: &String, src_link: &Path, dest: &Path) -> io::Result<()> {
         }
     }
     println!("{} {} -> {}", "++".blue(), name.bold(), src_target.to_string_lossy());
-    unix::fs::symlink(src_target, &dest)
+    unix::fs::symlink(src_target, &dest)?;
+    Ok(true)
 }
 
-pub fn copy(name: &String, source: &Path, destination: &Path) -> io::Result<()> {
-    if is_link(source)? {
-        return copy_link(&name, &source, destination)
-    }
+fn copy(name: &String, source: &Path, destination: &Path) -> io::Result<(bool)> {
     let src_path = File::open(source)?;
     let src_meta = fs::metadata(source)?;
     let src_size = src_meta.len();
@@ -111,7 +109,18 @@ pub fn copy(name: &String, source: &Path, destination: &Path) -> io::Result<()> 
                  err
       );
     }
-    Ok(())
+    Ok(true)
+}
+
+pub fn copy_if_more_recent(name: &String, src: &Path, dest: &Path)  -> io::Result<(bool)>{
+    if is_link(src)? {
+        return copy_link(&name, &src, &dest)
+    }
+    let more_recent = more_recent_than(&src, &dest)?;
+    if more_recent {
+        return copy(&name, &src, &dest);
+    }
+    Ok(false)
 }
 
 

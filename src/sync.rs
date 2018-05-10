@@ -61,11 +61,12 @@ impl Syncer {
 
     fn sync_file(&mut self, entry: &DirEntry) -> io::Result<()> {
         let rel_path = self.get_rel_path(&entry.path())?;
+        let name = rel_path.to_string_lossy();
 
         let parent_rel_path = rel_path.parent();
         if let None = parent_rel_path {
             return Err(fsops::to_io_error(
-                format!("Could not get parent path of {}", rel_path.to_string_lossy())
+                format!("Could not get parent path of {}", name)
             ))
         }
         let parent_rel_path = parent_rel_path.unwrap();
@@ -74,21 +75,14 @@ impl Syncer {
 
         let dest_path = self.destination.join(&rel_path);
         let src_path = entry.path();
-        self.copy_if_more_recent(&src_path, &dest_path)
-    }
-
-    fn copy_if_more_recent(&mut self, src: &Path, dest: &Path)  -> io::Result<()>{
-        let more_recent = fsops::more_recent_than(&src, &dest)?;
-        let rel_src = self.get_rel_path(&src)?;
         self.checked += 1;
-        // Name that would be displayed during copy
-        let display_name = rel_src.to_string_lossy();
-        if more_recent {
+        let created = fsops::copy_if_more_recent(&String::from(name), &src_path, &dest_path)?;
+        if created {
             self.copied += 1;
-            return fsops::copy(&String::from(display_name), &src, &dest);
         }
         Ok(())
     }
+
 
     fn sync(&mut self) -> io::Result<(Stats)> {
         let top_dir = &self.source.clone();
