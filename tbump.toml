@@ -26,4 +26,4 @@ cmd = "cargo package --allow-dirty"
 
 [[hook]]
 name = "Publish to crates.io"
-cmd = "cargo publish"
+cmd = "cargo publish --allow-dirty"
