@@ -19,8 +19,8 @@ const BUFFER_SIZE: usize = 100 * 1024;
 struct Syncer {
     pub source: PathBuf,
     pub destination: PathBuf,
-    checked: u32,
-    copied: u32,
+    pub checked: u32,
+    pub copied: u32,
 }
 
 impl Syncer {
