@@ -14,7 +14,7 @@ use filetime::FileTime;
 use tempdir::TempDir;
 
 
-use rusync::app;
+use rusync::sync;
 
 fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
@@ -59,8 +59,8 @@ fn make_recent(path: &Path) -> io::Result<()> {
 fn fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let outcome = app::sync(&src_path, &dest_path);
-    assert!(outcome.is_ok(), "app::sync failed with: {}", outcome.err().expect(""));
+    let outcome = sync::sync(&src_path, &dest_path);
+    assert!(outcome.is_ok(), "sync::sync failed with: {}", outcome.err().expect(""));
 
     let src_top = src_path.join("top.txt");
     let dest_top = dest_path.join("top.txt");
@@ -72,12 +72,12 @@ fn skip_up_to_date_files() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
 
-    let stats = app::sync(&src_path, &dest_path).unwrap();
+    let stats = sync::sync(&src_path, &dest_path).unwrap();
     assert_eq!(stats.up_to_date, 0);
 
     let src_top_txt = src_path.join("top.txt");
     make_recent(&src_top_txt).expect("could not make top.txt recent");
-    let stats = app::sync(&src_path, &dest_path).unwrap();
+    let stats = sync::sync(&src_path, &dest_path).unwrap();
     assert_eq!(stats.copied, 1);
 }
 
@@ -86,7 +86,7 @@ fn preserve_perms() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
 
-    app::sync(&src_path, &dest_path).expect("sync failed");
+    sync::sync(&src_path, &dest_path).expect("sync failed");
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
     assert_executable(&dest_exe);

@@ -1,6 +1,6 @@
 extern crate colored;
 
-mod app;
+mod sync;
 
 use std::env;
 use std::process;
@@ -28,7 +28,7 @@ fn main() {
     }
     let (source, destination) = parsed.unwrap();
 
-    let outcome = app::sync(&source, &destination);
+    let outcome = sync::sync(&source, &destination);
     match outcome {
         Err(err) => {
             eprintln!("{}", err);
