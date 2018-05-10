@@ -2,8 +2,11 @@ extern crate tempdir;
 
 extern crate rusync;
 
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
+use std::time;
 use tempdir::TempDir;
 
 use rusync::app;
@@ -30,13 +33,30 @@ fn setup_test(tmp_path: PathBuf) -> (PathBuf, PathBuf) {
 }
 
 #[test]
-fn test_zero() {
+fn test_fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
-    let src_top = src_path.join("top.txt");
-    let dest_top = dest_path.join("top.txt");
-    let outcome = app::sync(src_path, dest_path);
+    let outcome = app::sync(&src_path, &dest_path);
     assert!(outcome.is_ok(), "app::sync failed with: {}", outcome.err().expect(""));
 
+    let src_top = src_path.join("top.txt");
+    let dest_top = dest_path.join("top.txt");
     assert_same_contents(&src_top, &dest_top);
+}
+
+#[test]
+fn test_skip_up_to_date_files() {
+    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+    let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
+
+    let stats = app::sync(&src_path, &dest_path).unwrap();
+    assert_eq!(stats.up_to_date, 0);
+
+    let src_top = src_path.join("top.txt");
+    let mut file = File::create(src_top).expect("Could not open {:?} for writing");
+    file.write_all(b"new top\n").expect("");
+    let time_to_sleep = time::Duration::from_secs(1);
+    std::thread::sleep(time_to_sleep);
+    let stats = app::sync(&src_path, &dest_path).unwrap();
+    assert_eq!(stats.copied, 1);
 }
