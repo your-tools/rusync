@@ -48,7 +48,7 @@ fn make_recent(path: &Path) -> io::Result<()> {
 }
 
 #[test]
-fn test_fresh_copy() {
+fn fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
     let outcome = app::sync(&src_path, &dest_path);
@@ -60,7 +60,7 @@ fn test_fresh_copy() {
 }
 
 #[test]
-fn test_skip_up_to_date_files() {
+fn skip_up_to_date_files() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
 
