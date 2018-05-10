@@ -13,7 +13,7 @@ use std::fs::DirEntry;
 use std::path::Path;
 use std::path::PathBuf;
 
-use colored::Colorize;
+use self::colored::Colorize;
 use self::filetime::FileTime;
 
 const BUFFER_SIZE: usize = 100 * 1024;
