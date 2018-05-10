@@ -27,6 +27,12 @@ fn main() {
             process::exit(1)
     }
     let (source, destination) = parsed.unwrap();
+    println!("{} Syncing from {} to {} …",
+             "::".color("blue"),
+             source.to_string_lossy().bold(),
+             destination.to_string_lossy().bold()
+    );
+
 
     let outcome = sync::sync(&source, &destination);
     match outcome {

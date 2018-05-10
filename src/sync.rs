@@ -168,12 +168,6 @@ fn copy(source: &Path, destination: &Path) -> io::Result<()> {
 }
 
 pub fn sync(source: &Path, destination: &Path) -> io::Result<Stats> {
-    println!("{} Syncing from {} to {} …",
-             "::".color("blue"),
-             source.to_string_lossy().bold(),
-             destination.to_string_lossy().bold()
-    );
-
     let mut syncer = Syncer::new(&source, &destination);
     syncer.sync()
 }
