@@ -127,7 +127,7 @@ fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
     Ok(src_precise > dest_precise)
 }
 
-fn copy_metadata(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
+fn copy_perms(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
     let permissions = metadata.permissions();
     let file = File::create(path)?;
     file.set_permissions(permissions)?;
@@ -156,9 +156,9 @@ fn copy(source: &Path, destination: &Path) -> io::Result<()> {
     }
     // This is allowed to fail, for instance when
     // copying from an ext4 to a fat32 partition
-    let copy_outcome = copy_metadata(&destination, &src_meta);
+    let copy_outcome = copy_perms(&destination, &src_meta);
     if let Err(err) = copy_outcome {
-        println!("{} Failed to preserve metadata for {}: {}",
+        println!("{} Failed to preserve permissions for {}: {}",
                  "Warning".yellow(),
                  destination.to_string_lossy().bold(),
                  err
