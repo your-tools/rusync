@@ -16,7 +16,7 @@ use tempdir::TempDir;
 
 use rusync::app;
 
-fn assert_same_contents(a: &PathBuf, b: &PathBuf) {
+fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
     assert!(b.exists(), "{:?} does not exist", b);
     let status = Command::new("diff")
@@ -33,7 +33,7 @@ fn assert_executable(path: &Path) {
     assert!(mode & 0o111 != 0, "{:?} does not appear to be executable", path);
 }
 
-fn setup_test(tmp_path: PathBuf) -> (PathBuf, PathBuf) {
+fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
     let src_path = tmp_path.join("src");
     let dest_path = tmp_path.join("dest");
     let status = Command::new("cp")
@@ -58,7 +58,7 @@ fn make_recent(path: &Path) -> io::Result<()> {
 #[test]
 fn fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
-    let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
+    let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let outcome = app::sync(&src_path, &dest_path);
     assert!(outcome.is_ok(), "app::sync failed with: {}", outcome.err().expect(""));
 
@@ -70,7 +70,7 @@ fn fresh_copy() {
 #[test]
 fn skip_up_to_date_files() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
-    let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
+    let (src_path, dest_path) = setup_test(&tmp_dir.path());
 
     let stats = app::sync(&src_path, &dest_path).unwrap();
     assert_eq!(stats.up_to_date, 0);
@@ -84,7 +84,7 @@ fn skip_up_to_date_files() {
 #[test]
 fn preserve_perms() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
-    let (src_path, dest_path) = setup_test(tmp_dir.path().to_path_buf());
+    let (src_path, dest_path) = setup_test(&tmp_dir.path());
 
     app::sync(&src_path, &dest_path).expect("sync failed");
 
