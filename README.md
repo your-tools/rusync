@@ -29,7 +29,6 @@ $ rusync test/src test/dest
 
 There are *tons* of stuff in `rsync` we don't implement. Here's what's missing and I think `rusync` should have:
 
-* Symlinks handling
 * Option to delete extraneous files
 * Global progress bar (hard)
 
