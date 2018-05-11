@@ -1,4 +1,3 @@
-extern crate pathdiff;
 extern crate colored;
 extern crate filetime;
 
@@ -22,7 +21,7 @@ pub fn to_io_error(message: String) -> io::Error {
     io::Error::new(io::ErrorKind::Other, message)
 }
 
-pub fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
+fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
     if !dest.exists() {
         return Ok(true);
     }
