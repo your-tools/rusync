@@ -19,6 +19,15 @@ use entry::Entry;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
+#[derive(PartialEq, Debug)]
+pub enum SyncOutcome {
+    UpToDate,
+    FileCopied,
+    SymlinkUpdated,
+    SymlinkCreated,
+}
+
+
 pub fn to_io_error(message: String) -> io::Error {
     io::Error::new(io::ErrorKind::Other, message)
 }
@@ -57,17 +66,19 @@ fn copy_perms(src: &Entry, dest: &Entry) -> io::Result<()> {
     Ok(())
 }
 
-fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(bool)> {
+fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     let src_target =  std::fs::read_link(src.path())?;
     let is_link_outcome = is_link(&dest.path());
+    let outcome;
     match is_link_outcome {
         Ok(true) => {
             let dest_target = std::fs::read_link(dest.path())?;
             if dest_target != src_target {
                 println!("{} {}", "--".red(), src.description().bold());
-                fs::remove_file(dest.path())?
+                fs::remove_file(dest.path())?;
+                outcome = SyncOutcome::SymlinkUpdated;
             } else {
-               return Ok(false)
+               return Ok(SyncOutcome::UpToDate)
             }
 
         }
@@ -80,14 +91,15 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(bool)> {
         }
         Err(_) => {
             // OK, dest does not exist
+            outcome = SyncOutcome::SymlinkCreated;
         }
     }
     println!("{} {} -> {}", "++".blue(), src.description().bold(), src_target.to_string_lossy());
     unix::fs::symlink(src_target, &dest.path())?;
-    Ok(true)
+    Ok(outcome)
 }
 
-pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<(bool)> {
+pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
     let src_path = src.path();
     let src_file = File::open(src_path)?;
     let src_meta = src.metadata().expect("src_meta should not be None");
@@ -120,10 +132,10 @@ pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<(bool)> {
                  err
       );
     }
-    Ok(true)
+    Ok(SyncOutcome::FileCopied)
 }
 
-pub fn sync_entries(src: &Entry, dest: &Entry)  -> io::Result<(bool)> {
+pub fn sync_entries(src: &Entry, dest: &Entry)  -> io::Result<(SyncOutcome)> {
     if is_link(&src.path())? {
         return copy_link(&src, &dest);
     }
@@ -131,7 +143,7 @@ pub fn sync_entries(src: &Entry, dest: &Entry)  -> io::Result<(bool)> {
     if more_recent {
         return copy_entry(&src, &dest);
     }
-    Ok(false)
+    Ok(SyncOutcome::UpToDate)
 }
 
 
@@ -150,6 +162,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use super::Entry;
+use super::SyncOutcome;
 use super::copy_link;
 
 
@@ -185,7 +198,8 @@ fn copy_link_dest_does_not_exist() {
     let src_link = setup_copy_test(tmp_path);
 
     let new_link = &tmp_path.join("new");
-    copy_link(&Entry::new(String::from("src"), &src_link), &Entry::new(String::from("dest"), &new_link)).expect("");
+    let outcome = copy_link(&Entry::new(String::from("src"), &src_link), &Entry::new(String::from("dest"), &new_link));
+    assert_eq!(outcome.expect(""), SyncOutcome::SymlinkCreated);
     assert_links_to("src", &new_link);
 }
 
@@ -197,7 +211,8 @@ fn copy_link_dest_is_a_broken_link() {
 
     let broken_link = &tmp_path.join("broken");
     create_link("no-such-file", &broken_link);
-    copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("broken"), &broken_link)).expect("");
+    let outcome = copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("broken"), &broken_link));
+    assert_eq!(outcome.expect(""), SyncOutcome::SymlinkUpdated);
     assert_links_to("src", &broken_link);
 }
 
@@ -211,7 +226,8 @@ fn copy_link_dest_doest_not_point_to_correct_location() {
     create_file(&old_dest);
     let existing_link = tmp_path.join("existing");
     create_link("old", &existing_link);
-    copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("old"), &existing_link)).expect("");
+    let outcome = copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("old"), &existing_link));
+    assert_eq!(outcome.expect(""), SyncOutcome::SymlinkUpdated);
     assert_links_to("src", &existing_link);
 }
 
