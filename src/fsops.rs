@@ -159,6 +159,7 @@ use std::os::unix;
 use std::path::Path;
 use std::path::PathBuf;
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 
 use super::Entry;
@@ -177,10 +178,11 @@ fn create_link(src: &str, dest: &Path) {
                 src, dest));
 }
 
-fn assert_links_to(src: &str, dest: &Path) {
-    let link = std::fs::read_link(dest).expect(
+fn assert_links_to(tmp_path: &Path, src: &str, dest: &str) {
+    let src_path = tmp_path.join(src);
+    let link = std::fs::read_link(src_path).expect(
         &format!("could not read link {:?}", src));
-    assert_eq!(link.to_string_lossy(), src);
+    assert_eq!(link.to_string_lossy(), dest);
 }
 
 fn setup_copy_test(tmp_path: &Path) -> PathBuf {
@@ -191,16 +193,22 @@ fn setup_copy_test(tmp_path: &Path) -> PathBuf {
     src_link.to_path_buf()
 }
 
+fn sync_src_link(tmp_path: &Path, src_link: &Path, dest: &str) -> io::Result<(SyncOutcome)> {
+    let src_entry = Entry::new(String::from("src"), &src_link);
+    let dest_path = &tmp_path.join(&dest);
+    let dest_entry = Entry::new(String::from(dest), dest_path);
+    copy_link(&src_entry, &dest_entry)
+}
+
 #[test]
 fn copy_link_dest_does_not_exist() {
     let tmp_dir = TempDir::new("test-rusync-fsops").expect("failed to create temp dir");
     let tmp_path = tmp_dir.path();
     let src_link = setup_copy_test(tmp_path);
 
-    let new_link = &tmp_path.join("new");
-    let outcome = copy_link(&Entry::new(String::from("src"), &src_link), &Entry::new(String::from("dest"), &new_link));
+    let outcome = sync_src_link(&tmp_path, &src_link, "new");
     assert_eq!(outcome.expect(""), SyncOutcome::SymlinkCreated);
-    assert_links_to("src", &new_link);
+    assert_links_to(&tmp_path, "new", "src");
 }
 
 #[test]
@@ -211,9 +219,9 @@ fn copy_link_dest_is_a_broken_link() {
 
     let broken_link = &tmp_path.join("broken");
     create_link("no-such-file", &broken_link);
-    let outcome = copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("broken"), &broken_link));
+    let outcome = sync_src_link(&tmp_path, &src_link, "broken");
     assert_eq!(outcome.expect(""), SyncOutcome::SymlinkUpdated);
-    assert_links_to("src", &broken_link);
+    assert_links_to(&tmp_path, "broken", "src");
 }
 
 #[test]
@@ -224,11 +232,11 @@ fn copy_link_dest_doest_not_point_to_correct_location() {
 
     let old_dest = &tmp_path.join("old");
     create_file(&old_dest);
-    let existing_link = tmp_path.join("existing");
+    let existing_link = tmp_path.join("existing_link");
     create_link("old", &existing_link);
-    let outcome = copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("old"), &existing_link));
+    let outcome = sync_src_link(&tmp_path, &src_link, "existing_link");
     assert_eq!(outcome.expect(""), SyncOutcome::SymlinkUpdated);
-    assert_links_to("src", &existing_link);
+    assert_links_to(&tmp_path, "existing_link", "src");
 }
 
 #[test]
@@ -239,7 +247,7 @@ fn copy_link_dest_is_a_regular_file() {
 
     let existing_file = tmp_path.join("existing");
     create_file(&existing_file);
-    let outcome = copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("existing"), &existing_file));
+    let outcome = sync_src_link(&tmp_path, &src_link, "existing");
     assert!(outcome.is_err());
     let err = outcome.err().unwrap();
     let desc = err.description();
