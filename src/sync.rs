@@ -1,10 +1,10 @@
-extern crate pathdiff;
 extern crate colored;
 extern crate filetime;
+extern crate pathdiff;
 
-use std::io;
 use std::fs;
 use std::fs::DirEntry;
+use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -12,7 +12,6 @@ use entry;
 use fsops;
 use fsops::SyncOutcome;
 use fsops::SyncOutcome::*;
-
 
 pub struct Stats {
     pub total: u64,
@@ -29,17 +28,17 @@ impl Stats {
             up_to_date: 0,
             copied: 0,
             symlink_created: 0,
-            symlink_updated: 0
+            symlink_updated: 0,
         }
     }
 
     fn add_outcome(&mut self, outcome: SyncOutcome) {
         self.total += 1;
         match outcome {
-           FileCopied => self.copied += 1,
-           UpToDate => self.up_to_date += 1,
-           SymlinkUpdated => self.symlink_updated += 1,
-           SymlinkCreated => self.symlink_created += 1,
+            FileCopied => self.copied += 1,
+            UpToDate => self.up_to_date += 1,
+            SymlinkUpdated => self.symlink_updated += 1,
+            SymlinkCreated => self.symlink_created += 1,
         }
     }
 }
@@ -53,9 +52,11 @@ struct Syncer {
 fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
     let rel_path = pathdiff::diff_paths(&a, &b);
     if rel_path.is_none() {
-        Err(fsops::to_io_error(format!("Could not get relative path from {} to {}",
-                    &a.to_string_lossy(),
-                    &a.to_string_lossy())))
+        Err(fsops::to_io_error(format!(
+            "Could not get relative path from {} to {}",
+            &a.to_string_lossy(),
+            &a.to_string_lossy()
+        )))
     } else {
         Ok(rel_path.unwrap())
     }
@@ -70,7 +71,9 @@ impl Syncer {
         }
     }
 
-    fn stats(self) -> Stats { self.stats }
+    fn stats(self) -> Stats {
+        self.stats
+    }
 
     fn walk_dir(&mut self, subdir: &Path) -> io::Result<()> {
         for entry in fs::read_dir(subdir)? {
@@ -86,14 +89,14 @@ impl Syncer {
         Ok(())
     }
 
-
     fn sync_file(&mut self, entry: &DirEntry) -> io::Result<()> {
         let rel_path = get_rel_path(&entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
         if let None = parent_rel_path {
-            return Err(fsops::to_io_error(
-                format!("Could not get parent path of {}", rel_path.to_string_lossy())
-            ))
+            return Err(fsops::to_io_error(format!(
+                "Could not get parent path of {}",
+                rel_path.to_string_lossy()
+            )));
         }
         let parent_rel_path = parent_rel_path.unwrap();
         let to_create = self.destination.join(parent_rel_path);
@@ -109,14 +112,12 @@ impl Syncer {
         Ok(())
     }
 
-
     fn sync(&mut self) -> io::Result<()> {
         let top_dir = &self.source.clone();
         self.walk_dir(top_dir)?;
         Ok(())
     }
 }
-
 
 pub fn sync(source: &Path, destination: &Path) -> io::Result<Stats> {
     let mut syncer = Syncer::new(&source, &destination);

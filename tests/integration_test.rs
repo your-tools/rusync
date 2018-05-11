@@ -1,10 +1,10 @@
-extern crate tempdir;
 extern crate filetime;
+extern crate tempdir;
 
 extern crate rusync;
 
-use std::io;
 use std::fs;
+use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
@@ -13,33 +13,37 @@ use std::process::Command;
 use filetime::FileTime;
 use tempdir::TempDir;
 
-
 use rusync::sync;
 
 fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
     assert!(b.exists(), "{:?} does not exist", b);
     let status = Command::new("diff")
-             .args(&[a, b])
-             .status()
-             .expect("Failed to execute process");
+        .args(&[a, b])
+        .status()
+        .expect("Failed to execute process");
     assert!(status.success(), "{:?} and {:?} differ", a, b)
 }
 
 fn assert_executable(path: &Path) {
-    let metadata = std::fs::metadata(&path).expect(&format!("Could not get metadata of {:?}", path));
+    let metadata =
+        std::fs::metadata(&path).expect(&format!("Could not get metadata of {:?}", path));
     let permissions = metadata.permissions();
     let mode = permissions.mode();
-    assert!(mode & 0o111 != 0, "{:?} does not appear to be executable", path);
+    assert!(
+        mode & 0o111 != 0,
+        "{:?} does not appear to be executable",
+        path
+    );
 }
 
 fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
     let src_path = tmp_path.join("src");
     let dest_path = tmp_path.join("dest");
     let status = Command::new("cp")
-             .args(&["-r", "tests/data", &src_path.to_string_lossy()])
-             .status()
-             .expect("Failed to execute process");
+        .args(&["-r", "tests/data", &src_path.to_string_lossy()])
+        .status()
+        .expect("Failed to execute process");
     assert!(status.success());
     (src_path, dest_path)
 }
@@ -60,7 +64,11 @@ fn fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let outcome = sync::sync(&src_path, &dest_path);
-    assert!(outcome.is_ok(), "sync::sync failed with: {}", outcome.err().expect(""));
+    assert!(
+        outcome.is_ok(),
+        "sync::sync failed with: {}",
+        outcome.err().expect("")
+    );
 
     let src_top = src_path.join("top.txt");
     let dest_top = dest_path.join("top.txt");

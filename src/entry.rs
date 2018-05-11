@@ -1,7 +1,7 @@
+use std::fs;
 use std::option::Option;
 use std::path::Path;
 use std::path::PathBuf;
-use std::fs;
 
 pub struct Entry {
     description: String,
@@ -21,34 +21,42 @@ impl Entry {
         }
     }
 
-    pub fn description(&self) -> &String { &self.description }
-    pub fn path(&self) -> &PathBuf { &self.path }
-    pub fn metadata(&self) -> Option<&fs::Metadata> { self.metadata.as_ref() }
-    pub fn exists(&self) -> bool { self.exists }
+    pub fn description(&self) -> &String {
+        &self.description
+    }
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn metadata(&self) -> Option<&fs::Metadata> {
+        self.metadata.as_ref()
+    }
+    pub fn exists(&self) -> bool {
+        self.exists
+    }
 }
 
 #[cfg(test)]
 mod tests {
 
-use super::Path;
-use super::Entry;
+    use super::Entry;
+    use super::Path;
 
-#[test]
-fn new_entry_with_non_existing_path() {
-    let path = Path::new("/path/to/nosuch.txt");
-    let entry = Entry::new("nosuch", &path);
+    #[test]
+    fn new_entry_with_non_existing_path() {
+        let path = Path::new("/path/to/nosuch.txt");
+        let entry = Entry::new("nosuch", &path);
 
-    assert!(!entry.exists());
-    assert!(entry.metadata.is_none());
-}
+        assert!(!entry.exists());
+        assert!(entry.metadata.is_none());
+    }
 
-#[test]
-fn new_entry_with_existing_path() {
-    let path = Path::new(file!());
-    let entry = Entry::new("entry.rs", &path);
+    #[test]
+    fn new_entry_with_existing_path() {
+        let path = Path::new(file!());
+        let entry = Entry::new("entry.rs", &path);
 
-    assert!(entry.exists());
-    assert!(entry.metadata.is_some());
-}
+        assert!(entry.exists());
+        assert!(entry.metadata.is_some());
+    }
 
 }
