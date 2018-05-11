@@ -193,9 +193,9 @@ fn setup_copy_test(tmp_path: &Path) -> PathBuf {
 }
 
 fn sync_src_link(tmp_path: &Path, src_link: &Path, dest: &str) -> io::Result<(SyncOutcome)> {
-    let src_entry = Entry::new(String::from("src"), &src_link);
+    let src_entry = Entry::new("src", &src_link);
     let dest_path = &tmp_path.join(&dest);
-    let dest_entry = Entry::new(String::from(dest), dest_path);
+    let dest_entry = Entry::new(&dest, dest_path);
     copy_link(&src_entry, &dest_entry)
 }
 

@@ -99,12 +99,12 @@ impl Syncer {
         let to_create = self.destination.join(parent_rel_path);
         fs::create_dir_all(to_create)?;
 
-        let src_desc = String::from(rel_path.to_string_lossy());
-        let src_entry = entry::Entry::new(src_desc, &entry.path());
+        let src_desc = rel_path.to_string_lossy();
+        let src_entry = entry::Entry::new(&src_desc, &entry.path());
 
         let dest_path = self.destination.join(&rel_path);
-        let dest_desc = String::from(rel_path.to_string_lossy());
-        let dest_entry = entry::Entry::new(dest_desc, &dest_path);
+        let dest_desc = rel_path.to_string_lossy();
+        let dest_entry = entry::Entry::new(&dest_desc, &dest_path);
         let outcome = fsops::sync_entries(&src_entry, &dest_entry)?;
         self.stats.add_outcome(outcome);
         Ok(())

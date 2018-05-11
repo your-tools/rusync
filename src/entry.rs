@@ -11,10 +11,10 @@ pub struct Entry {
 }
 
 impl Entry {
-    pub fn new(description: String, entry_path: &Path) -> Entry {
+    pub fn new(description: &str, entry_path: &Path) -> Entry {
         let metadata = fs::metadata(entry_path).ok();
         Entry {
-            description: description,
+            description: String::from(description),
             metadata: metadata,
             path: entry_path.to_path_buf(),
             exists: entry_path.exists(),
@@ -36,7 +36,7 @@ use super::Entry;
 #[test]
 fn new_entry_with_non_existing_path() {
     let path = Path::new("/path/to/nosuch.txt");
-    let entry = Entry::new(String::from("nosuch"), &path);
+    let entry = Entry::new("nosuch", &path);
 
     assert!(!entry.exists());
     assert!(entry.metadata.is_none());
@@ -45,7 +45,7 @@ fn new_entry_with_non_existing_path() {
 #[test]
 fn new_entry_with_existing_path() {
     let path = Path::new(file!());
-    let entry = Entry::new(String::from("entry.rs"), &path);
+    let entry = Entry::new("entry.rs", &path);
 
     assert!(entry.exists());
     assert!(entry.metadata.is_some());
