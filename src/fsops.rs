@@ -86,8 +86,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
             // Never safe to delete
             return Err(
                 to_io_error(
-                    String::from(
-                        format!("Refusing to replace existing path {:?} by symlink", dest.path()))));
+                    format!("Refusing to replace existing path {:?} by symlink", dest.path())));
         }
         Err(_) => {
             // OK, dest does not exist

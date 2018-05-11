@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use entry;
 use fsops;
 use fsops::SyncOutcome;
+use fsops::SyncOutcome::*;
 
 
 pub struct Stats {
@@ -35,10 +36,10 @@ impl Stats {
     fn add_outcome(&mut self, outcome: SyncOutcome) {
         self.total += 1;
         match outcome {
-           SyncOutcome::FileCopied => self.copied += 1,
-           SyncOutcome::UpToDate => self.up_to_date += 1,
-           SyncOutcome::SymlinkUpdated => self.symlink_updated += 1,
-           SyncOutcome::SymlinkCreated => self.symlink_created += 1,
+           FileCopied => self.copied += 1,
+           UpToDate => self.up_to_date += 1,
+           SymlinkUpdated => self.symlink_updated += 1,
+           SymlinkCreated => self.symlink_created += 1,
         }
     }
 }
