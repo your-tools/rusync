@@ -15,19 +15,24 @@ use std::path::Path;
 use self::colored::Colorize;
 use self::filetime::FileTime;
 
+use entry::Entry;
+
 const BUFFER_SIZE: usize = 100 * 1024;
 
 pub fn to_io_error(message: String) -> io::Error {
     io::Error::new(io::ErrorKind::Other, message)
 }
 
-fn more_recent_than(src: &Path, dest: &Path) -> io::Result<bool> {
+fn more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
     if !dest.exists() {
         return Ok(true);
     }
 
-    let src_meta = fs::metadata(src)?;
-    let dest_meta = fs::metadata(dest)?;
+    let src_meta = &src.metadata();
+    let dest_meta = &dest.metadata();
+
+    let src_meta = &src_meta.expect("src_meta was None");
+    let dest_meta = &dest_meta.expect("dest_meta was None");
 
     let src_mtime = FileTime::from_last_modification_time(&src_meta);
     let dest_mtime = FileTime::from_last_modification_time(&dest_meta);
@@ -43,22 +48,24 @@ fn is_link(path: &Path) -> io::Result<bool> {
     Ok(metadata.file_type().is_symlink())
 }
 
-fn copy_perms(path: &Path, metadata: &fs::Metadata) -> io::Result<()> {
-    let permissions = metadata.permissions();
-    let file = File::create(path)?;
-    file.set_permissions(permissions)?;
+fn copy_perms(src: &Entry, dest: &Entry) -> io::Result<()> {
+    let src_meta = &src.metadata();
+    let src_meta = &src_meta.expect("src_meta was None");
+    let permissions = src_meta.permissions();
+    let dest_file = File::create(dest.path())?;
+    dest_file.set_permissions(permissions)?;
     Ok(())
 }
 
-fn copy_link(name: &String, src_link: &Path, dest: &Path) -> io::Result<(bool)> {
-    let src_target =  std::fs::read_link(src_link)?;
-    let is_link_outcome = is_link(dest);
+fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(bool)> {
+    let src_target =  std::fs::read_link(src.path())?;
+    let is_link_outcome = is_link(&dest.path());
     match is_link_outcome {
         Ok(true) => {
-            let dest_target = std::fs::read_link(dest)?;
+            let dest_target = std::fs::read_link(dest.path())?;
             if dest_target != src_target {
-                println!("{} {}", "--".red(), name.bold());
-                fs::remove_file(dest)?
+                println!("{} {}", "--".red(), src.description().bold());
+                fs::remove_file(dest.path())?
             } else {
                return Ok(false)
             }
@@ -66,27 +73,32 @@ fn copy_link(name: &String, src_link: &Path, dest: &Path) -> io::Result<(bool)> 
         }
         Ok(false) => {
             // Never safe to delete
-            return Err(to_io_error(String::from("Refusing to replace existing path by symlink")));
+            return Err(
+                to_io_error(
+                    String::from(
+                        format!("Refusing to replace existing path {:?} by symlink", dest.path()))));
         }
         Err(_) => {
             // OK, dest does not exist
         }
     }
-    println!("{} {} -> {}", "++".blue(), name.bold(), src_target.to_string_lossy());
-    unix::fs::symlink(src_target, &dest)?;
+    println!("{} {} -> {}", "++".blue(), src.description().bold(), src_target.to_string_lossy());
+    unix::fs::symlink(src_target, &dest.path())?;
     Ok(true)
 }
 
-fn copy(name: &String, source: &Path, destination: &Path) -> io::Result<(bool)> {
-    let src_path = File::open(source)?;
-    let src_meta = fs::metadata(source)?;
+pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<(bool)> {
+    let src_path = src.path();
+    let src_file = File::open(src_path)?;
+    let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
     let mut done = 0;
-    let mut buf_reader = BufReader::new(src_path);
-    let dest_path = File::create(destination)?;
-    let mut buf_writer = BufWriter::new(dest_path);
+    let mut buf_reader = BufReader::new(src_file);
+    let dest_path = dest.path();
+    let dest_file = File::create(dest_path)?;
+    let mut buf_writer = BufWriter::new(dest_file);
     let mut buffer = vec![0; BUFFER_SIZE];
-    println!("{} {}", "++".green(), name.bold());
+    println!("{} {}", "++".green(), src.description().bold());
     loop {
         let num_read = buf_reader.read(&mut buffer)?;
         if num_read == 0 {
@@ -100,24 +112,24 @@ fn copy(name: &String, source: &Path, destination: &Path) -> io::Result<(bool)> 
     }
     // This is allowed to fail, for instance when
     // copying from an ext4 to a fat32 partition
-    let copy_outcome = copy_perms(&destination, &src_meta);
+    let copy_outcome = copy_perms(&src, &dest);
     if let Err(err) = copy_outcome {
         println!("{} Failed to preserve permissions for {}: {}",
                  "Warning".yellow(),
-                 destination.to_string_lossy().bold(),
+                 src.description().bold(),
                  err
       );
     }
     Ok(true)
 }
 
-pub fn copy_if_more_recent(name: &String, src: &Path, dest: &Path)  -> io::Result<(bool)>{
-    if is_link(src)? {
-        return copy_link(&name, &src, &dest)
+pub fn sync_entries(src: &Entry, dest: &Entry)  -> io::Result<(bool)> {
+    if is_link(&src.path())? {
+        return copy_link(&src, &dest);
     }
     let more_recent = more_recent_than(&src, &dest)?;
     if more_recent {
-        return copy(&name, &src, &dest);
+        return copy_entry(&src, &dest);
     }
     Ok(false)
 }
@@ -137,6 +149,7 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::io::prelude::*;
 
+use super::Entry;
 use super::copy_link;
 
 
@@ -172,7 +185,7 @@ fn copy_link_dest_does_not_exist() {
     let src_link = setup_copy_test(tmp_path);
 
     let new_link = &tmp_path.join("new");
-    copy_link(&String::from("src_link"), &src_link, &new_link).expect("");
+    copy_link(&Entry::new(String::from("src"), &src_link), &Entry::new(String::from("dest"), &new_link)).expect("");
     assert_links_to("src", &new_link);
 }
 
@@ -184,7 +197,7 @@ fn copy_link_dest_is_a_broken_link() {
 
     let broken_link = &tmp_path.join("broken");
     create_link("no-such-file", &broken_link);
-    copy_link(&String::from("src_link"), &src_link, &broken_link).expect("");
+    copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("broken"), &broken_link)).expect("");
     assert_links_to("src", &broken_link);
 }
 
@@ -198,7 +211,7 @@ fn copy_link_dest_doest_not_point_to_correct_location() {
     create_file(&old_dest);
     let existing_link = tmp_path.join("existing");
     create_link("old", &existing_link);
-    copy_link(&String::from("src_link"), &src_link, &existing_link).expect("");
+    copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("old"), &existing_link)).expect("");
     assert_links_to("src", &existing_link);
 }
 
@@ -210,7 +223,7 @@ fn copy_link_dest_is_a_regular_file() {
 
     let existing_file = tmp_path.join("existing");
     create_file(&existing_file);
-    let outcome = copy_link(&String::from("src_link"), &src_link, &existing_file);
+    let outcome = copy_link(&Entry::new(String::from("src_link"), &src_link), &Entry::new(String::from("existing"), &existing_file));
     assert!(outcome.is_err());
     let err = outcome.err().unwrap();
     let desc = err.description();

@@ -8,6 +8,7 @@ use std::fs::DirEntry;
 use std::path::Path;
 use std::path::PathBuf;
 
+use entry;
 use fsops;
 
 
@@ -22,6 +23,17 @@ struct Syncer {
     pub destination: PathBuf,
     checked: u64,
     copied: u64,
+}
+
+fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
+    let rel_path = pathdiff::diff_paths(&a, &b);
+    if rel_path.is_none() {
+        Err(fsops::to_io_error(format!("Could not get relative path from {} to {}",
+                    &a.to_string_lossy(),
+                    &a.to_string_lossy())))
+    } else {
+        Ok(rel_path.unwrap())
+    }
 }
 
 impl Syncer {
@@ -48,35 +60,27 @@ impl Syncer {
         Ok(())
     }
 
-    fn get_rel_path(&self, entry: &Path) -> io::Result<PathBuf> {
-        let rel_path = pathdiff::diff_paths(&entry, &self.source);
-        if rel_path.is_none() {
-            Err(fsops::to_io_error(format!("Could not get relative path from {} to {}",
-                        &self.source.to_string_lossy(),
-                        &entry.to_string_lossy())))
-        } else {
-            Ok(rel_path.unwrap())
-        }
-    }
 
     fn sync_file(&mut self, entry: &DirEntry) -> io::Result<()> {
-        let rel_path = self.get_rel_path(&entry.path())?;
-        let name = rel_path.to_string_lossy();
-
+        let rel_path = get_rel_path(&entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
         if let None = parent_rel_path {
             return Err(fsops::to_io_error(
-                format!("Could not get parent path of {}", name)
+                format!("Could not get parent path of {}", rel_path.to_string_lossy())
             ))
         }
         let parent_rel_path = parent_rel_path.unwrap();
         let to_create = self.destination.join(parent_rel_path);
         fs::create_dir_all(to_create)?;
 
+        let src_desc = String::from(rel_path.to_string_lossy());
+        let src_entry = entry::Entry::new(src_desc, &entry.path());
+
         let dest_path = self.destination.join(&rel_path);
-        let src_path = entry.path();
+        let dest_desc = String::from(rel_path.to_string_lossy());
+        let dest_entry = entry::Entry::new(dest_desc, &dest_path);
         self.checked += 1;
-        let created = fsops::copy_if_more_recent(&String::from(name), &src_path, &dest_path)?;
+        let created = fsops::sync_entries(&src_entry, &dest_entry)?;
         if created {
             self.copied += 1;
         }
