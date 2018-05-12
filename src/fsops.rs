@@ -5,10 +5,10 @@ use std;
 use std::fs;
 use std::fs::File;
 use std::io;
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
+use std::io::prelude::*;
 use std::os::unix;
 use std::path::Path;
 
@@ -73,7 +73,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         Ok(true) => {
             let dest_target = std::fs::read_link(dest.path())?;
             if dest_target != src_target {
-                println!("{} {}", "--".red(), src.description().bold());
+                println!("{} {} {}", "<-".red(), "removing", src.description().bold());
                 fs::remove_file(dest.path())?;
                 outcome = SyncOutcome::SymlinkUpdated;
             } else {
@@ -93,8 +93,9 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         }
     }
     println!(
-        "{} {} -> {}",
-        "++".blue(),
+        "{} {} {} -> {}",
+        "->".blue(),
+        "creating",
         src.description().bold(),
         src_target.to_string_lossy()
     );
@@ -113,7 +114,12 @@ pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
     let dest_file = File::create(dest_path)?;
     let mut buf_writer = BufWriter::new(dest_file);
     let mut buffer = vec![0; BUFFER_SIZE];
-    println!("{} {}", "++".green(), src.description().bold());
+    println!(
+        "{} {} {}",
+        "->".blue(),
+        " copying",
+        src.description().bold()
+    );
     loop {
         let num_read = buf_reader.read(&mut buffer)?;
         if num_read == 0 {
@@ -165,9 +171,9 @@ mod tests {
     use std::path::Path;
     use std::path::PathBuf;
 
-    use super::copy_link;
     use super::Entry;
     use super::SyncOutcome;
+    use super::copy_link;
 
     fn create_file(path: &Path) {
         let mut out = File::create(path).expect(&format!("could not open {:?} for writing", path));
