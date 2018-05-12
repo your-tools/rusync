@@ -1,6 +1,3 @@
-extern crate colored;
-extern crate filetime;
-
 use std;
 use std::fs;
 use std::fs::File;
@@ -12,8 +9,8 @@ use std::io::prelude::*;
 use std::os::unix;
 use std::path::Path;
 
-use self::colored::Colorize;
-use self::filetime::FileTime;
+use colored::Colorize;
+use filetime::FileTime;
 
 use entry::Entry;
 
@@ -56,7 +53,7 @@ fn is_link(path: &Path) -> io::Result<bool> {
     Ok(metadata.file_type().is_symlink())
 }
 
-fn copy_perms(src: &Entry, dest: &Entry) -> io::Result<()> {
+fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
     let src_meta = &src.metadata();
     let src_meta = &src_meta.expect("src_meta was None");
     let permissions = src_meta.permissions();
@@ -103,7 +100,11 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     Ok(outcome)
 }
 
-pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
+pub fn copy_entry(
+    src: &Entry,
+    dest: &Entry,
+    preserve_permissions: bool,
+) -> io::Result<SyncOutcome> {
     let src_path = src.path();
     let src_file = File::open(src_path)?;
     let src_meta = src.metadata().expect("src_meta should not be None");
@@ -133,25 +134,31 @@ pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
     }
     // This is allowed to fail, for instance when
     // copying from an ext4 to a fat32 partition
-    let copy_outcome = copy_perms(&src, &dest);
-    if let Err(err) = copy_outcome {
-        println!(
-            "{} Failed to preserve permissions for {}: {}",
-            "Warning".yellow(),
-            src.description().bold(),
-            err
-        );
+    if preserve_permissions {
+        let copy_outcome = copy_permissions(&src, &dest);
+        if let Err(err) = copy_outcome {
+            println!(
+                "{} Failed to preserve permissions for {}: {}",
+                "Warning".yellow(),
+                src.description().bold(),
+                err
+            );
+        }
     }
     Ok(SyncOutcome::FileCopied)
 }
 
-pub fn sync_entries(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
+pub fn sync_entries(
+    src: &Entry,
+    dest: &Entry,
+    preserve_permissions: bool,
+) -> io::Result<(SyncOutcome)> {
     if is_link(&src.path())? {
         return copy_link(&src, &dest);
     }
     let more_recent = more_recent_than(&src, &dest)?;
     if more_recent {
-        return copy_entry(&src, &dest);
+        return copy_entry(&src, &dest, preserve_permissions);
     }
     Ok(SyncOutcome::UpToDate)
 }

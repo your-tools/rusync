@@ -13,7 +13,7 @@ use std::process::Command;
 use filetime::FileTime;
 use tempdir::TempDir;
 
-use rusync::sync;
+use rusync::sync::Syncer;
 
 fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
@@ -25,16 +25,24 @@ fn assert_same_contents(a: &Path, b: &Path) {
     assert!(status.success(), "{:?} and {:?} differ", a, b)
 }
 
-fn assert_executable(path: &Path) {
+fn is_executable(path: &Path) -> bool {
     let metadata =
         std::fs::metadata(&path).expect(&format!("Could not get metadata of {:?}", path));
     let permissions = metadata.permissions();
     let mode = permissions.mode();
+    mode & 0o111 != 0
+}
+
+fn assert_executable(path: &Path) {
     assert!(
-        mode & 0o111 != 0,
+        is_executable(&path),
         "{:?} does not appear to be executable",
         path
     );
+}
+
+fn assert_not_executable(path: &Path) {
+    assert!(!is_executable(&path), "{:?} appears to be executable", path);
 }
 
 fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
@@ -63,7 +71,8 @@ fn make_recent(path: &Path) -> io::Result<()> {
 fn fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let outcome = sync::sync(&src_path, &dest_path);
+    let mut syncer = Syncer::new(&src_path, &dest_path);
+    let outcome = syncer.sync();
     assert!(
         outcome.is_ok(),
         "sync::sync failed with: {}",
@@ -83,23 +92,40 @@ fn fresh_copy() {
 fn skip_up_to_date_files() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let mut syncer = Syncer::new(&src_path, &dest_path);
+    syncer.sync().expect("");
 
-    let stats = sync::sync(&src_path, &dest_path).unwrap();
+    let stats = syncer.stats();
     assert_eq!(stats.up_to_date, 0);
 
     let src_top_txt = src_path.join("top.txt");
     make_recent(&src_top_txt).expect("could not make top.txt recent");
-    let stats = sync::sync(&src_path, &dest_path).unwrap();
+    let mut syncer = Syncer::new(&src_path, &dest_path);
+    syncer.sync().expect("");
+
+    let stats = syncer.stats();
     assert_eq!(stats.copied, 1);
 }
 
 #[test]
-fn preserve_perms() {
+fn preserve_permissions() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-
-    sync::sync(&src_path, &dest_path).expect("sync failed");
+    let mut syncer = Syncer::new(&src_path, &dest_path);
+    syncer.sync().expect("");
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
     assert_executable(&dest_exe);
+}
+
+#[test]
+fn do_not_preserve_permissions() {
+    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let mut syncer = Syncer::new(&src_path, &dest_path);
+    syncer.preserve_permissions(false);
+    syncer.sync().expect("");
+
+    let dest_exe = &dest_path.join("a_dir/foo.exe");
+    assert_not_executable(&dest_exe);
 }

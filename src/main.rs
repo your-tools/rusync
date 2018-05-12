@@ -1,30 +1,37 @@
+#[macro_use]
+extern crate structopt;
 extern crate colored;
 extern crate rusync;
 
 use colored::Colorize;
 use rusync::sync;
-use std::env;
 use std::path::PathBuf;
 use std::process;
+use structopt::StructOpt;
+use sync::Syncer;
 
-fn parse_args() -> Result<(PathBuf, PathBuf), String> {
-    let args: Vec<String> = env::args().collect();
-    let arg_count = args.len();
-    if arg_count < 3 {
-        return Err(format!("Usage: {} SRC DEST", args[0]));
+#[derive(Debug, StructOpt)]
+#[structopt(name = "rusync")]
+struct Opt {
+    #[structopt(long = "no-perms")]
+    no_preserve_permissions: bool,
+    #[structopt(parse(from_os_str))]
+    source: PathBuf,
+    #[structopt(parse(from_os_str))]
+    destination: PathBuf,
+}
+
+impl Opt {
+    fn preserve_permissions(&self) -> bool {
+        !self.no_preserve_permissions
     }
-    let source = PathBuf::from(&args[1]);
-    let destination = PathBuf::from(&args[2]);
-    Ok((source, destination))
 }
 
 fn main() {
-    let parsed = parse_args();
-    if let Err(err) = parsed {
-        eprintln!("{}", err);
-        process::exit(1)
-    }
-    let (source, destination) = parsed.unwrap();
+    let opt = Opt::from_args();
+    let source = &opt.source;
+    let destination = &opt.destination;
+    let preserve_permissions = opt.preserve_permissions();
     println!(
         "{} Syncing from {} to {} …",
         "::".color("blue"),
@@ -32,13 +39,16 @@ fn main() {
         destination.to_string_lossy().bold()
     );
 
-    let outcome = sync::sync(&source, &destination);
+    let mut syncer = Syncer::new(&source, &destination);
+    syncer.preserve_permissions(preserve_permissions);
+    let outcome = syncer.sync();
     match outcome {
         Err(err) => {
             eprintln!("{}", err);
             process::exit(1);
         }
-        Ok(stats) => {
+        Ok(_) => {
+            let stats = syncer.stats();
             let total = stats.total;
             let up_to_date = stats.up_to_date;
             let copied = stats.copied;

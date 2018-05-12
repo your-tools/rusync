@@ -1,4 +1,3 @@
-extern crate colored;
 extern crate filetime;
 extern crate pathdiff;
 
@@ -7,6 +6,8 @@ use std::fs::DirEntry;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
+
+use colored::Colorize;
 
 use entry;
 use fsops;
@@ -43,10 +44,11 @@ impl Stats {
     }
 }
 
-struct Syncer {
+pub struct Syncer {
     pub stats: Stats,
     pub source: PathBuf,
     pub destination: PathBuf,
+    pub preserve_permissions: bool,
 }
 
 fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
@@ -63,16 +65,21 @@ fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
 }
 
 impl Syncer {
-    fn new(source: &Path, destination: &Path) -> Syncer {
+    pub fn new(source: &Path, destination: &Path) -> Syncer {
         Syncer {
             source: source.to_path_buf(),
             destination: destination.to_path_buf(),
             stats: Stats::new(),
+            preserve_permissions: true,
         }
     }
 
-    fn stats(self) -> Stats {
+    pub fn stats(self) -> Stats {
         self.stats
+    }
+
+    pub fn preserve_permissions(&mut self, preserve_permissions: bool) {
+        self.preserve_permissions = preserve_permissions;
     }
 
     fn walk_dir(&mut self, subdir: &Path) -> io::Result<()> {
@@ -107,20 +114,17 @@ impl Syncer {
 
         let dest_path = self.destination.join(&rel_path);
         let dest_entry = entry::Entry::new(&desc, &dest_path);
-        let outcome = fsops::sync_entries(&src_entry, &dest_entry)?;
+        let outcome = fsops::sync_entries(&src_entry, &dest_entry, self.preserve_permissions)?;
         self.stats.add_outcome(outcome);
         Ok(())
     }
 
-    fn sync(&mut self) -> io::Result<()> {
+    pub fn sync(&mut self) -> io::Result<()> {
+        if !self.preserve_permissions {
+            println!("{} not preserving permissions", "Warning:".yellow());
+        }
         let top_dir = &self.source.clone();
         self.walk_dir(top_dir)?;
         Ok(())
     }
-}
-
-pub fn sync(source: &Path, destination: &Path) -> io::Result<Stats> {
-    let mut syncer = Syncer::new(&source, &destination);
-    syncer.sync()?;
-    Ok(syncer.stats())
 }
