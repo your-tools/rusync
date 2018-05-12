@@ -16,6 +16,7 @@ repository = "https://github.com/dmerejkowsky/rusync"
 pathdiff = "0.1.0"
 colored = "1.6"
 filetime = "0.1"
+structopt = "0.2.8"
 
 [dev-dependencies]
 tempdir = "0.3"
