@@ -1,3 +1,8 @@
+# v0.2.3
+
+* Add a `--no-perms` flag to disable preservation of permissions. Useful when
+  you *know* this will fail and don't want to be flooded with warning messages.
+
 # v0.2.1
 
 This contains several bug fixes regarding symlinks.
@@ -5,7 +10,7 @@ This contains several bug fixes regarding symlinks.
 Here the algorithm when now use:
 
 * If the destination does not exists:
-  * Create a new symlink with the same target as the previous one
+  * Create a new symlink with the same target as the previous one.
 
 * If the destination exists:
 
@@ -15,7 +20,7 @@ Here the algorithm when now use:
   * Otherwise:
 
     * If the destination symlink already has the correct target, consider it up to date.
-    * If the destination symlink is broken, remove it and re-create it
+    * If the destination symlink is broken, remove it and re-create it.
     * If the destination symlink does not point to the correct location, remove it and re-create it.
 
 # v0.2.0
