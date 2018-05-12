@@ -53,11 +53,11 @@ fn is_link(path: &Path) -> io::Result<bool> {
     Ok(metadata.file_type().is_symlink())
 }
 
-fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
+pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
     let src_meta = &src.metadata();
     let src_meta = &src_meta.expect("src_meta was None");
     let permissions = src_meta.permissions();
-    let dest_file = File::create(dest.path())?;
+    let dest_file = File::open(dest.path())?;
     dest_file.set_permissions(permissions)?;
     Ok(())
 }
@@ -100,11 +100,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     Ok(outcome)
 }
 
-pub fn copy_entry(
-    src: &Entry,
-    dest: &Entry,
-    preserve_permissions: bool,
-) -> io::Result<SyncOutcome> {
+pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
     let src_path = src.path();
     let src_file = File::open(src_path)?;
     let src_meta = src.metadata().expect("src_meta should not be None");
@@ -132,33 +128,16 @@ pub fn copy_entry(
         let _ = io::stdout().flush();
         buf_writer.write(&buffer[0..num_read])?;
     }
-    // This is allowed to fail, for instance when
-    // copying from an ext4 to a fat32 partition
-    if preserve_permissions {
-        let copy_outcome = copy_permissions(&src, &dest);
-        if let Err(err) = copy_outcome {
-            println!(
-                "{} Failed to preserve permissions for {}: {}",
-                "Warning".yellow(),
-                src.description().bold(),
-                err
-            );
-        }
-    }
     Ok(SyncOutcome::FileCopied)
 }
 
-pub fn sync_entries(
-    src: &Entry,
-    dest: &Entry,
-    preserve_permissions: bool,
-) -> io::Result<(SyncOutcome)> {
+pub fn sync_entries(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     if is_link(&src.path())? {
         return copy_link(&src, &dest);
     }
     let more_recent = more_recent_than(&src, &dest)?;
     if more_recent {
-        return copy_entry(&src, &dest, preserve_permissions);
+        return copy_entry(&src, &dest);
     }
     Ok(SyncOutcome::UpToDate)
 }
