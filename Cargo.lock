@@ -136,7 +136,7 @@ dependencies = [
 
 [[package]]
 name = "rusync"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "colored 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "filetime 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
