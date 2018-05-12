@@ -19,11 +19,3 @@ search = 'version = "{current_version}"'
 [[hook]]
 name = "Check changelog"
 cmd = "python tools/check-changelog.py {new_version}"
-
-[[hook]]
-name = "Generate cargo.lock"
-cmd = "cargo package --allow-dirty"
-
-[[hook]]
-name = "Publish to crates.io"
-cmd = "cargo publish --allow-dirty"
