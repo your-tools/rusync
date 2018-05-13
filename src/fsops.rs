@@ -126,7 +126,7 @@ pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
         let percent = ((done * 100) as u64) / src_size;
         print!("{number:>width$}%\r", number = percent, width = 3);
         let _ = io::stdout().flush();
-        buf_writer.write(&buffer[0..num_read])?;
+        buf_writer.write_all(&buffer[0..num_read])?;
     }
     Ok(SyncOutcome::FileCopied)
 }
