@@ -3,3 +3,7 @@ language: rust
 rust:
   - stable
   - nightly
+
+
+script:
+  - bash tools/ci.sh
