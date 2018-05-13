@@ -33,7 +33,7 @@ impl Stats {
         }
     }
 
-    fn add_outcome(&mut self, outcome: SyncOutcome) {
+    fn add_outcome(&mut self, outcome: &SyncOutcome) {
         self.total += 1;
         match outcome {
             FileCopied => self.copied += 1,
@@ -99,7 +99,7 @@ impl Syncer {
     fn sync_file(&mut self, entry: &DirEntry) -> io::Result<()> {
         let rel_path = get_rel_path(&entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
-        if let None = parent_rel_path {
+        if parent_rel_path.is_none() {
             return Err(fsops::to_io_error(format!(
                 "Could not get parent path of {}",
                 rel_path.to_string_lossy()
@@ -115,7 +115,7 @@ impl Syncer {
         let dest_path = self.destination.join(&rel_path);
         let dest_entry = entry::Entry::new(&desc, &dest_path);
         let outcome = fsops::sync_entries(&src_entry, &dest_entry)?;
-        self.stats.add_outcome(outcome);
+        self.stats.add_outcome(&outcome);
         if self.preserve_permissions {
             let copy_outcome = fsops::copy_permissions(&src_entry, &dest_entry);
             if let Err(err) = copy_outcome {

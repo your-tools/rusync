@@ -15,7 +15,7 @@ impl Entry {
         let metadata = fs::metadata(entry_path).ok();
         Entry {
             description: String::from(description),
-            metadata: metadata,
+            metadata,
             path: entry_path.to_path_buf(),
             exists: entry_path.exists(),
         }

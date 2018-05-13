@@ -42,8 +42,9 @@ fn more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
     let src_mtime = FileTime::from_last_modification_time(&src_meta);
     let dest_mtime = FileTime::from_last_modification_time(&dest_meta);
 
-    let src_precise = src_mtime.seconds() * 1000 * 1000 * 1000 + src_mtime.nanoseconds() as u64;
-    let dest_precise = dest_mtime.seconds() * 1000 * 1000 * 1000 + dest_mtime.nanoseconds() as u64;
+    let src_precise = src_mtime.seconds() * 1000 * 1000 * 1000 + u64::from(src_mtime.nanoseconds());
+    let dest_precise =
+        dest_mtime.seconds() * 1000 * 1000 * 1000 + u64::from(dest_mtime.nanoseconds());
 
     Ok(src_precise > dest_precise)
 }
@@ -70,7 +71,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         Ok(true) => {
             let dest_target = std::fs::read_link(dest.path())?;
             if dest_target != src_target {
-                println!("{} {} {}", "<-".red(), "removing", src.description().bold());
+                println!("{} removing {}", "<-".red(), src.description().bold());
                 fs::remove_file(dest.path())?;
                 outcome = SyncOutcome::SymlinkUpdated;
             } else {
@@ -90,9 +91,8 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         }
     }
     println!(
-        "{} {} {} -> {}",
+        "{} creating {} -> {}",
         "->".blue(),
-        "creating",
         src.description().bold(),
         src_target.to_string_lossy()
     );
@@ -111,12 +111,7 @@ pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
     let dest_file = File::create(dest_path)?;
     let mut buf_writer = BufWriter::new(dest_file);
     let mut buffer = vec![0; BUFFER_SIZE];
-    println!(
-        "{} {} {}",
-        "->".blue(),
-        " copying",
-        src.description().bold()
-    );
+    println!("{} copying {}", "->".blue(), src.description().bold());
     loop {
         let num_read = buf_reader.read(&mut buffer)?;
         if num_read == 0 {
