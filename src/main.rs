@@ -15,8 +15,10 @@ use sync::Syncer;
 struct Opt {
     #[structopt(long = "no-perms")]
     no_preserve_permissions: bool,
+
     #[structopt(parse(from_os_str))]
     source: PathBuf,
+
     #[structopt(parse(from_os_str))]
     destination: PathBuf,
 }
