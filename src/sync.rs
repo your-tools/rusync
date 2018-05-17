@@ -117,15 +117,7 @@ impl Syncer {
         let outcome = fsops::sync_entries(&src_entry, &dest_entry)?;
         self.stats.add_outcome(&outcome);
         if self.preserve_permissions {
-            let copy_outcome = fsops::copy_permissions(&src_entry, &dest_entry);
-            if let Err(err) = copy_outcome {
-                println!(
-                    "{} Failed to preserve permissions for {}: {}",
-                    "Warning".yellow(),
-                    desc.bold(),
-                    err
-                );
-            }
+            fsops::copy_permissions(&src_entry, &dest_entry)?;
         }
         Ok(())
     }
