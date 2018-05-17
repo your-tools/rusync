@@ -8,22 +8,33 @@ pub struct Entry {
     path: PathBuf,
     metadata: Option<fs::Metadata>,
     exists: bool,
+    is_link: Option<bool>,
 }
 
 impl Entry {
     pub fn new(description: &str, entry_path: &Path) -> Entry {
-        let metadata = fs::metadata(entry_path).ok();
+        let metadata = fs::metadata(&entry_path).ok();
+        let is_link;
+        let symlink_metadata = fs::symlink_metadata(&entry_path);
+        if let Ok(data) = symlink_metadata {
+            is_link = Some(data.file_type().is_symlink());
+        } else {
+            is_link = None;
+        }
+
         Entry {
             description: String::from(description),
             metadata,
             path: entry_path.to_path_buf(),
             exists: entry_path.exists(),
+            is_link,
         }
     }
 
     pub fn description(&self) -> &String {
         &self.description
     }
+
     pub fn path(&self) -> &PathBuf {
         &self.path
     }
@@ -32,6 +43,10 @@ impl Entry {
     }
     pub fn exists(&self) -> bool {
         self.exists
+    }
+
+    pub fn is_link(&self) -> Option<bool> {
+        self.is_link
     }
 }
 
@@ -57,6 +72,9 @@ mod tests {
 
         assert!(entry.exists());
         assert!(entry.metadata.is_some());
+        let is_link = entry.is_link();
+        assert!(is_link.is_some());
+        assert!(!is_link.unwrap());
     }
 
 }

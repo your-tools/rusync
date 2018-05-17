@@ -7,7 +7,6 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::io::prelude::*;
 use std::os::unix;
-use std::path::Path;
 
 use colored::Colorize;
 use filetime::FileTime;
@@ -49,17 +48,11 @@ fn is_more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
     Ok(src_precise > dest_precise)
 }
 
-fn is_link(path: &Path) -> io::Result<bool> {
-    let metadata = std::fs::symlink_metadata(path)?;
-    Ok(metadata.file_type().is_symlink())
-}
-
 pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
     let src_meta = &src.metadata();
     let src_meta = &src_meta.expect("src_meta was None");
-    let src_path = &src.path();
-    let link = is_link(src_path).ok();
-    if link.is_some() && link.unwrap() {
+    let is_link = src.is_link().expect("is_link should not be none");
+    if is_link {
         return Ok(());
     }
     let permissions = src_meta.permissions();
@@ -70,10 +63,10 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
 
 fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     let src_target = std::fs::read_link(src.path())?;
-    let is_link_outcome = is_link(&dest.path());
+    let is_link = dest.is_link();
     let outcome;
-    match is_link_outcome {
-        Ok(true) => {
+    match is_link {
+        Some(true) => {
             let dest_target = std::fs::read_link(dest.path())?;
             if dest_target != src_target {
                 println!("{} removing {}", "<-".red(), src.description().bold());
@@ -83,14 +76,14 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
                 return Ok(SyncOutcome::UpToDate);
             }
         }
-        Ok(false) => {
+        Some(false) => {
             // Never safe to delete
             return Err(to_io_error(format!(
                 "Refusing to replace existing path {:?} by symlink",
                 dest.path()
             )));
         }
-        Err(_) => {
+        None => {
             // OK, dest does not exist
             outcome = SyncOutcome::SymlinkCreated;
         }
@@ -147,7 +140,8 @@ fn is_truncated(src: &Entry, dest: &Entry) -> bool {
 }
 
 pub fn sync_entries(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
-    if is_link(&src.path())? {
+    src.is_link().expect("src.is_link should not be None");
+    if src.is_link().unwrap() {
         return copy_link(&src, &dest);
     }
     let truncated = is_truncated(&src, &dest);
