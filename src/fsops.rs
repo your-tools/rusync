@@ -28,7 +28,7 @@ pub fn to_io_error(message: String) -> io::Error {
     io::Error::new(io::ErrorKind::Other, message)
 }
 
-fn more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
+fn is_more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
     if !dest.exists() {
         return Ok(true);
     }
@@ -131,12 +131,29 @@ pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
     Ok(SyncOutcome::FileCopied)
 }
 
+fn is_truncated(src: &Entry, dest: &Entry) -> bool {
+    let src_meta = src.metadata().expect("src_meta should not be None");
+    let src_size = src_meta.len();
+
+    let dest_meta = dest.metadata();
+    if dest_meta.is_none() {
+        return true;
+    }
+    let dest_size = dest_meta.unwrap().len();
+    if dest_size < src_size {
+        return true;
+    }
+    false
+}
+
 pub fn sync_entries(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     if is_link(&src.path())? {
         return copy_link(&src, &dest);
     }
-    let more_recent = more_recent_than(&src, &dest)?;
-    if more_recent {
+    let truncated = is_truncated(&src, &dest);
+    let more_recent = is_more_recent_than(&src, &dest)?;
+    // TODO: check if files really are different ?
+    if more_recent || truncated {
         return copy_entry(&src, &dest);
     }
     Ok(SyncOutcome::UpToDate)
