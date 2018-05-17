@@ -2,10 +2,8 @@ use std;
 use std::fs;
 use std::fs::File;
 use std::io;
-use std::io::BufReader;
-use std::io::BufWriter;
+use std::io::Read;
 use std::io::Write;
-use std::io::prelude::*;
 use std::os::unix;
 
 use colored::Colorize;
@@ -100,27 +98,28 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
 
 pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
     let src_path = src.path();
-    let src_file = File::open(src_path)?;
+    let mut src_file = File::open(src_path)?;
     let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
     let mut done = 0;
-    let mut buf_reader = BufReader::new(src_file);
     let dest_path = dest.path();
-    let dest_file = File::create(dest_path)?;
-    let mut buf_writer = BufWriter::new(dest_file);
+    let mut dest_file = File::create(dest_path)?;
     let mut buffer = vec![0; BUFFER_SIZE];
     println!("{} copying {}", "->".blue(), src.description().bold());
     loop {
-        let num_read = buf_reader.read(&mut buffer)?;
+        let num_read = src_file.read(&mut buffer)?;
         if num_read == 0 {
             break;
         }
+        dest_file.write_all(&buffer[0..num_read])?;
+        dest_file.flush()?;
         done += num_read;
         let percent = ((done * 100) as u64) / src_size;
         print!("{number:>width$}%\r", number = percent, width = 3);
         let _ = io::stdout().flush();
-        buf_writer.write_all(&buffer[0..num_read])?;
     }
+    drop(src_file);
+    drop(dest_file);
     Ok(SyncOutcome::FileCopied)
 }
 
