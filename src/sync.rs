@@ -54,7 +54,7 @@ pub struct Syncer {
 fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
     let rel_path = pathdiff::diff_paths(&a, &b);
     if rel_path.is_none() {
-        Err(fsops::to_io_error(format!(
+        Err(fsops::to_io_error(&format!(
             "Could not get relative path from {} to {}",
             &a.to_string_lossy(),
             &a.to_string_lossy()
@@ -100,7 +100,7 @@ impl Syncer {
         let rel_path = get_rel_path(&entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
-            return Err(fsops::to_io_error(format!(
+            return Err(fsops::to_io_error(&format!(
                 "Could not get parent path of {}",
                 rel_path.to_string_lossy()
             )));

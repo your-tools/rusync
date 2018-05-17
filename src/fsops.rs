@@ -21,7 +21,7 @@ pub enum SyncOutcome {
     SymlinkCreated,
 }
 
-pub fn to_io_error(message: String) -> io::Error {
+pub fn to_io_error(message: &str) -> io::Error {
     io::Error::new(io::ErrorKind::Other, message)
 }
 
@@ -76,7 +76,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         }
         Some(false) => {
             // Never safe to delete
-            return Err(to_io_error(format!(
+            return Err(to_io_error(&format!(
                 "Refusing to replace existing path {:?} by symlink",
                 dest.path()
             )));
