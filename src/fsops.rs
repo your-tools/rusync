@@ -57,6 +57,11 @@ fn is_link(path: &Path) -> io::Result<bool> {
 pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
     let src_meta = &src.metadata();
     let src_meta = &src_meta.expect("src_meta was None");
+    let src_path = &src.path();
+    let link = is_link(src_path).ok();
+    if link.is_some() && link.unwrap() {
+        return Ok(());
+    }
     let permissions = src_meta.permissions();
     let dest_file = File::open(dest.path())?;
     dest_file.set_permissions(permissions)?;
