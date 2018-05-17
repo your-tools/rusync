@@ -4,9 +4,7 @@ extern crate tempdir;
 extern crate rusync;
 
 use std::fs;
-use std::fs::File;
 use std::io;
-use std::io::prelude::*;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
@@ -16,20 +14,6 @@ use filetime::FileTime;
 use tempdir::TempDir;
 
 use rusync::sync::Syncer;
-
-fn read_file(path: &Path) -> String {
-    let mut file = File::open(&path).expect(&format!("Could not open {:?} for reading", path));
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
-        .expect("reading contents failed");
-    return contents;
-}
-
-fn write_file(path: &Path, contents: &str) {
-    let mut file = File::create(&path).expect(&format!("Could not open {:?} for writing", path));
-    file.write_all(contents.as_bytes())
-        .expect("writing contents failed");
-}
 
 fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
@@ -151,15 +135,15 @@ fn rewrite_partially_written_files() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let src_top = src_path.join("top.txt");
-    let expected = read_file(&src_top);
+    let expected = fs::read_to_string(&src_top).expect("");
 
     let mut syncer = Syncer::new(&src_path, &dest_path);
     syncer.sync().expect("");
     let dest_top = dest_path.join("top.txt");
     // Corrupt the dest/top.txt
-    write_file(&dest_top, "this is");
+    fs::write(&dest_top, "this is").expect("");
     syncer.sync().expect("");
 
-    let actual = read_file(&dest_top);
+    let actual = fs::read_to_string(&dest_top).expect("");
     assert_eq!(actual, expected);
 }
