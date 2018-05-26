@@ -66,11 +66,16 @@ fn is_more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
 
 pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
     let src_meta = &src.metadata();
-    let src_meta = &src_meta.expect("src_meta was None");
-    let is_link = src.is_link().expect("is_link should not be none");
+    // is_link should not be none because we should have been able to
+    // read its metadata way back in WalkWorker
+    let is_link = src.is_link()
+        .expect(&format!("is_link was Nonef for {:?}", src));
     if is_link {
         return Ok(());
     }
+    // The only way for src_meta to be None is if src is a broken symlink
+    // and we checked that right above:
+    let src_meta = &src_meta.expect(&format!("src_meta was None for {:?}", src));
     let permissions = src_meta.permissions();
     let dest_file = File::open(dest.path())?;
     dest_file.set_permissions(permissions)?;

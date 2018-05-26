@@ -6,6 +6,7 @@ extern crate rusync;
 use std::fs;
 use std::fs::File;
 use std::io;
+use std::os::unix;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
@@ -169,5 +170,17 @@ fn dest_read_only() {
     let result = syncer.sync();
 
     assert!(result.is_err());
-    println!("{:?}", result.err().unwrap());
+}
+
+#[test]
+fn broken_link_in_src() {
+    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let broken_link = &src_path.join("broken");
+    unix::fs::symlink("no-such", &broken_link).expect("");
+
+    let syncer = Syncer::new(&src_path, &dest_path);
+    let result = syncer.sync();
+
+    assert!(result.is_ok());
 }
