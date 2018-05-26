@@ -1,21 +1,21 @@
 extern crate colored;
 
-use std::fs;
-use std::fs::DirEntry;
-use std::io;
-use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::channel;
 use std::thread;
 
 use entry::Entry;
 use fsops;
-use fsops::SyncOutcome;
 use fsops::SyncOutcome::*;
+use progress::Progress;
+use workers::ProgressWorker;
+use workers::SyncWorker;
+use workers::WalkWorker;
 
 pub struct Stats {
     pub total: u64,
+
     pub up_to_date: u64,
     pub copied: u64,
     pub symlink_created: u64,
@@ -33,7 +33,7 @@ impl Stats {
         }
     }
 
-    pub fn add_outcome(&mut self, outcome: &SyncOutcome) {
+    pub fn add_outcome(&mut self, outcome: &fsops::SyncOutcome) {
         self.total += 1;
         match outcome {
             FileCopied => self.copied += 1,
@@ -44,25 +44,9 @@ impl Stats {
     }
 }
 
-pub enum Progress {
-    DoneSyncing(SyncOutcome),
-    Syncing {
-        description: String,
-        size: usize,
-        done: usize,
-    },
-}
-
-struct SyncWorker {
-    input: Receiver<Entry>,
-    output: Sender<Progress>,
-    source: PathBuf,
-    destination: PathBuf,
-}
-
 #[derive(Copy, Clone)]
-struct SyncOptions {
-    preserve_permissions: bool,
+pub struct SyncOptions {
+    pub preserve_permissions: bool,
 }
 
 impl SyncOptions {
@@ -70,136 +54,6 @@ impl SyncOptions {
         SyncOptions {
             preserve_permissions: true,
         }
-    }
-}
-
-impl SyncWorker {
-    fn new(
-        source: &Path,
-        destination: &Path,
-        input: Receiver<Entry>,
-        output: Sender<Progress>,
-    ) -> SyncWorker {
-        SyncWorker {
-            source: source.to_path_buf(),
-            destination: destination.to_path_buf(),
-            input,
-            output,
-        }
-    }
-
-    fn start(self, opts: SyncOptions) {
-        for entry in self.input.iter() {
-            // FIXME: handle errors
-            let sync_outcome = self.sync(&entry, opts).unwrap();
-            let progress = Progress::DoneSyncing(sync_outcome);
-            self.output.send(progress).unwrap();
-        }
-    }
-
-    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> io::Result<(SyncOutcome)> {
-        let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
-        let parent_rel_path = rel_path.parent();
-        if parent_rel_path.is_none() {
-            return Err(fsops::to_io_error(&format!(
-                "Could not get parent path of {}",
-                rel_path.to_string_lossy()
-            )));
-        }
-        let parent_rel_path = parent_rel_path.unwrap();
-        let to_create = self.destination.join(parent_rel_path);
-        fs::create_dir_all(to_create)?;
-
-        let desc = rel_path.to_string_lossy();
-
-        let dest_path = self.destination.join(&rel_path);
-        let dest_entry = Entry::new(&desc, &dest_path);
-        let outcome = fsops::sync_entries(&self.output, &src_entry, &dest_entry)?;
-        if opts.preserve_permissions {
-            fsops::copy_permissions(&src_entry, &dest_entry)?;
-        }
-        Ok(outcome)
-    }
-}
-
-struct WalkWorker {
-    output: Sender<Entry>,
-    source: PathBuf,
-}
-
-impl WalkWorker {
-    fn new(source: &Path, output: Sender<Entry>) -> WalkWorker {
-        WalkWorker {
-            output,
-            source: source.to_path_buf(),
-        }
-    }
-
-    fn walk_dir(&self, subdir: &Path) -> io::Result<()> {
-        for entry in fs::read_dir(subdir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                let subdir = path;
-                self.walk_dir(&subdir)?;
-            } else {
-                self.process_file(&entry)?;
-            }
-        }
-        Ok(())
-    }
-
-    fn process_file(&self, entry: &DirEntry) -> io::Result<()> {
-        let rel_path = fsops::get_rel_path(&entry.path(), &self.source)?;
-        let parent_rel_path = rel_path.parent();
-        if parent_rel_path.is_none() {
-            return Err(fsops::to_io_error(&format!(
-                "Could not get parent path of {}",
-                rel_path.to_string_lossy()
-            )));
-        }
-
-        let desc = rel_path.to_string_lossy();
-        let src_entry = Entry::new(&desc, &entry.path());
-        self.output.send(src_entry).unwrap();
-        Ok(())
-    }
-
-    fn start(&self) {
-        let top_dir = &self.source.clone();
-        let outcome = self.walk_dir(top_dir);
-        if outcome.is_err() {
-            // Send err to output
-        }
-    }
-}
-
-struct ProgressWorker {
-    input: Receiver<Progress>,
-}
-
-impl ProgressWorker {
-    fn new(input: Receiver<Progress>) -> ProgressWorker {
-        ProgressWorker { input }
-    }
-
-    fn start(self) -> Stats {
-        let mut stats = Stats::new();
-        for progress in self.input.iter() {
-            match progress {
-                Progress::DoneSyncing(x) => stats.add_outcome(&x),
-                Progress::Syncing {
-                    description: _,
-                    done,
-                    size,
-                } => {
-                    let percent = ((done * 100) as usize) / size;
-                    print!("{number:>width$}%\r", number = percent, width = 3);
-                    let _ = io::stdout().flush();
-                }
-            }
-        }
-        stats
     }
 }
 

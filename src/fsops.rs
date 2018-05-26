@@ -15,7 +15,7 @@ use colored::Colorize;
 use filetime::FileTime;
 
 use entry::Entry;
-use sync::Progress;
+use progress::Progress;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
