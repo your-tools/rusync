@@ -3,4 +3,5 @@ extern crate filetime;
 
 mod entry;
 mod fsops;
-pub mod pipeline;
+pub mod sync;
+pub use sync::Syncer;

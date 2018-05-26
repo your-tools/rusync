@@ -187,20 +187,26 @@ impl ProgressWorker {
     }
 }
 
-pub struct Pipeline {
+pub struct Syncer {
     source: PathBuf,
     destination: PathBuf,
+    preserve_permissions: bool,
 }
 
-impl Pipeline {
-    pub fn new(source: &Path, destination: &Path) -> Pipeline {
-        Pipeline {
+impl Syncer {
+    pub fn new(source: &Path, destination: &Path) -> Syncer {
+        Syncer {
             source: source.to_path_buf(),
             destination: destination.to_path_buf(),
+            preserve_permissions: true,
         }
     }
 
-    pub fn run(self) -> Result<Stats, String> {
+    pub fn preserve_permissions(&mut self, preserve_permissions: bool) {
+        self.preserve_permissions = preserve_permissions
+    }
+
+    pub fn sync(self) -> Result<Stats, String> {
         let (walker_output, syncer_input) = channel::<Entry>();
         let (syncer_output, progress_input) = channel::<Progress>();
         let walk_worker = WalkWorker::new(&self.source, walker_output);
@@ -229,34 +235,4 @@ impl Pipeline {
         }
         Ok(progress_outcome.unwrap())
     }
-}
-
-#[cfg(test)]
-mod tests {
-    extern crate tempdir;
-
-    use self::tempdir::TempDir;
-    use super::*;
-    use std::process::Command;
-
-    fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
-        let src_path = tmp_path.join("src");
-        let dest_path = tmp_path.join("dest");
-        let status = Command::new("cp")
-            .args(&["-r", "tests/data", &src_path.to_string_lossy()])
-            .status()
-            .expect("Failed to execute process");
-        assert!(status.success());
-        (src_path, dest_path)
-    }
-
-    #[test]
-    fn test_pipeline() {
-        let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
-        let (src_path, dest_path) = setup_test(&tmp_dir.path());
-        let pipeline = Pipeline::new(&src_path, &dest_path);
-        let stats = pipeline.run();
-        assert!(stats.is_ok());
-    }
-
 }

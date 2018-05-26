@@ -71,7 +71,7 @@ fn make_recent(path: &Path) -> io::Result<()> {
 fn fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let mut syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = Syncer::new(&src_path, &dest_path);
     let outcome = syncer.sync();
     assert!(
         outcome.is_ok(),
@@ -92,18 +92,16 @@ fn fresh_copy() {
 fn skip_up_to_date_files() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let mut syncer = Syncer::new(&src_path, &dest_path);
-    syncer.sync().expect("");
+    let syncer = Syncer::new(&src_path, &dest_path);
 
-    let stats = syncer.stats();
+    let stats = syncer.sync().unwrap();
     assert_eq!(stats.up_to_date, 0);
 
     let src_top_txt = src_path.join("top.txt");
     make_recent(&src_top_txt).expect("could not make top.txt recent");
-    let mut syncer = Syncer::new(&src_path, &dest_path);
-    syncer.sync().expect("");
+    let syncer = Syncer::new(&src_path, &dest_path);
 
-    let stats = syncer.stats();
+    let stats = syncer.sync().expect("");
     assert_eq!(stats.copied, 1);
 }
 
@@ -111,8 +109,8 @@ fn skip_up_to_date_files() {
 fn preserve_permissions() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let mut syncer = Syncer::new(&src_path, &dest_path);
-    syncer.sync().expect("");
+    let syncer = Syncer::new(&src_path, &dest_path);
+    syncer.sync().unwrap();
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
     assert_executable(&dest_exe);
@@ -137,13 +135,14 @@ fn rewrite_partially_written_files() {
     let src_top = src_path.join("top.txt");
     let expected = fs::read_to_string(&src_top).expect("");
 
-    let mut syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = Syncer::new(&src_path, &dest_path);
     syncer.sync().expect("");
     let dest_top = dest_path.join("top.txt");
     // Corrupt the dest/top.txt
     fs::write(&dest_top, "this is").expect("");
-    syncer.sync().expect("");
 
+    let syncer = Syncer::new(&src_path, &dest_path);
+    syncer.sync().expect("");
     let actual = fs::read_to_string(&dest_top).expect("");
     assert_eq!(actual, expected);
 }
