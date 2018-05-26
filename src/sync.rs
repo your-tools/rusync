@@ -33,7 +33,7 @@ impl Stats {
         }
     }
 
-    fn add_outcome(&mut self, outcome: &SyncOutcome) {
+    pub fn add_outcome(&mut self, outcome: &SyncOutcome) {
         self.total += 1;
         match outcome {
             FileCopied => self.copied += 1,
