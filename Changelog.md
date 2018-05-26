@@ -1,3 +1,8 @@
+# v0.3.1
+
+* Exit early if the source given on the command line is not an argument. We used to display a weird
+  "0 files copied" in this case.
+
 # v0.3.0
 
 * Change output to be like a Ninja. Print all progress on one line, and erase it when done.
