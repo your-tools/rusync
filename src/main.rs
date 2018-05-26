@@ -29,7 +29,7 @@ impl Opt {
     }
 }
 
-fn print_stats(stats: Stats) {
+fn print_stats(stats: &Stats) {
     println!(
         "{} Synced {} files ({} up to date)",
         " ✓".color("green"),
@@ -63,7 +63,7 @@ fn main() {
             process::exit(1);
         }
         Ok(stats) => {
-            print_stats(stats);
+            print_stats(&stats);
             process::exit(0);
         }
     }
