@@ -45,6 +45,10 @@ fn print_stats(stats: &Stats) {
 fn main() {
     let opt = Opt::from_args();
     let source = &opt.source;
+    if !source.is_dir() {
+        eprintln!("{} is not a directory", source.to_string_lossy());
+        process::exit(1);
+    }
     let destination = &opt.destination;
     let preserve_permissions = opt.preserve_permissions();
     println!(
