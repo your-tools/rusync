@@ -124,7 +124,6 @@ pub fn copy_entry(
     let mut src_file = File::open(src_path)?;
     let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
-    let mut done = 0;
     let dest_path = dest.path();
     println!("{} copying {}", "->".blue(), src.description().bold());
     let mut dest_file = File::create(dest_path)?;
@@ -136,11 +135,10 @@ pub fn copy_entry(
         }
         dest_file.write_all(&buffer[0..num_read])?;
         dest_file.flush()?;
-        done += num_read;
         let progress = Progress::Syncing {
             description: src.description().clone(),
             size: src_size as usize,
-            done,
+            done: num_read,
         };
         progress_sender.send(progress).unwrap();
     }

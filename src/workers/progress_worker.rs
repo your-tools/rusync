@@ -16,13 +16,30 @@ impl ProgressWorker {
 
     pub fn start(self) -> Stats {
         let mut stats = Stats::new();
+        let mut total_done = 0;
+        let mut file_done = 0;
         for progress in self.input.iter() {
             match progress {
-                Progress::DoneSyncing(x) => stats.add_outcome(&x),
+                Progress::Todo {
+                    num_files,
+                    total_size,
+                } => {
+                    stats.num_files = num_files;
+                    stats.total_size = total_size;
+                }
+                Progress::DoneSyncing(x) => {
+                    stats.add_outcome(&x);
+                    file_done = 0;
+                }
                 Progress::Syncing { done, size, .. } => {
-                    let percent = ((done * 100) as usize) / size;
-                    print!("{number:>width$}%\r", number = percent, width = 3);
+                    file_done += done;
+                    let percent = ((file_done * 100) as usize) / size;
+                    // TODO: two lines
+                    println!("{number:>width$}%", number = percent, width = 3);
+                    println!("File {} on {}", stats.num_synced, stats.num_files);
+                    println!("{} on {}", total_done, stats.total_size);
                     let _ = io::stdout().flush();
+                    total_done += done;
                 }
             }
         }

@@ -33,7 +33,7 @@ fn print_stats(stats: Stats) {
     println!(
         "{} Synced {} files ({} up to date)",
         " ✓".color("green"),
-        stats.total,
+        stats.num_synced,
         stats.up_to_date
     );
     println!(

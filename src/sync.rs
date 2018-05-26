@@ -15,10 +15,13 @@ use workers::WalkWorker;
 
 #[derive(Default)]
 pub struct Stats {
-    pub total: u64,
+    pub num_files: u64,
+    pub total_size: usize,
 
+    pub num_synced: u64,
     pub up_to_date: u64,
     pub copied: u64,
+
     pub symlink_created: u64,
     pub symlink_updated: u64,
 }
@@ -26,16 +29,20 @@ pub struct Stats {
 impl Stats {
     pub fn new() -> Stats {
         Stats {
-            total: 0,
+            num_files: 0,
+            total_size: 0,
+
+            num_synced: 0,
             up_to_date: 0,
             copied: 0,
+
             symlink_created: 0,
             symlink_updated: 0,
         }
     }
 
     pub fn add_outcome(&mut self, outcome: &fsops::SyncOutcome) {
-        self.total += 1;
+        self.num_synced += 1;
         match outcome {
             FileCopied => self.copied += 1,
             UpToDate => self.up_to_date += 1,
@@ -78,11 +85,17 @@ impl Syncer {
     }
 
     pub fn sync(self) -> Result<Stats, String> {
-        let (walker_output, syncer_input) = channel::<Entry>();
-        let (syncer_output, progress_input) = channel::<Progress>();
-        let walk_worker = WalkWorker::new(&self.source, walker_output);
-        let sync_worker =
-            SyncWorker::new(&self.source, &self.destination, syncer_input, syncer_output);
+        let (walker_entry_output, syncer_input) = channel::<Entry>();
+        let (walker_stats_output, progress_input) = channel::<Progress>();
+        let progress_output = walker_stats_output.clone();
+
+        let walk_worker = WalkWorker::new(&self.source, walker_entry_output, walker_stats_output);
+        let sync_worker = SyncWorker::new(
+            &self.source,
+            &self.destination,
+            syncer_input,
+            progress_output,
+        );
         let progress_worker = ProgressWorker::new(progress_input);
 
         let walker_thread = thread::spawn(move || walk_worker.start());
