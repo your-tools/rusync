@@ -50,21 +50,15 @@ fn main() {
         }
         Ok(_) => {
             let stats = syncer.stats();
-            let total = stats.total;
-            let up_to_date = stats.up_to_date;
-            let copied = stats.copied;
-            let symlink_created = stats.symlink_created;
-            let symlink_updated = stats.symlink_updated;
-
             println!(
                 "{} Synced {} files ({} up to date)",
                 " ✓".color("green"),
-                total,
-                up_to_date
+                stats.total,
+                stats.up_to_date
             );
             println!(
                 "{} files copied, {} symlinks created, {} symlinks updated",
-                copied, symlink_created, symlink_updated
+                stats.copied, stats.symlink_created, stats.symlink_updated
             );
 
             process::exit(0);
