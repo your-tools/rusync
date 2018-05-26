@@ -1,6 +1,5 @@
-extern crate pathdiff;
+extern crate colored;
 
-use colored::Colorize;
 use std::fs;
 use std::fs::DirEntry;
 use std::io;
@@ -12,22 +11,38 @@ use std::thread;
 use entry::Entry;
 use fsops;
 use fsops::SyncOutcome;
-use sync::Stats;
 
-fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
-    let rel_path = pathdiff::diff_paths(&a, &b);
-    if rel_path.is_none() {
-        Err(fsops::to_io_error(&format!(
-            "Could not get relative path from {} to {}",
-            &a.to_string_lossy(),
-            &a.to_string_lossy()
-        )))
-    } else {
-        Ok(rel_path.unwrap())
+pub struct Stats {
+    pub total: u64,
+    pub up_to_date: u64,
+    pub copied: u64,
+    pub symlink_created: u64,
+    pub symlink_updated: u64,
+}
+
+impl Stats {
+    pub fn new() -> Stats {
+        Stats {
+            total: 0,
+            up_to_date: 0,
+            copied: 0,
+            symlink_created: 0,
+            symlink_updated: 0,
+        }
+    }
+
+    pub fn add_outcome(&mut self, outcome: &SyncOutcome) {
+        self.total += 1;
+        match outcome {
+            FileCopied => self.copied += 1,
+            UpToDate => self.up_to_date += 1,
+            SymlinkUpdated => self.symlink_updated += 1,
+            SymlinkCreated => self.symlink_created += 1,
+        }
     }
 }
 
-enum Progress {
+pub enum Progress {
     DoneSyncing(SyncOutcome),
     Syncing {
         description: String,
@@ -70,7 +85,7 @@ impl SyncWorker {
     }
 
     fn sync(&self, src_entry: &Entry) -> io::Result<(SyncOutcome)> {
-        let rel_path = get_rel_path(&src_entry.path(), &self.source)?;
+        let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
             return Err(fsops::to_io_error(&format!(
@@ -86,7 +101,7 @@ impl SyncWorker {
 
         let dest_path = self.destination.join(&rel_path);
         let dest_entry = Entry::new(&desc, &dest_path);
-        let outcome = fsops::sync_entries(&src_entry, &dest_entry)?;
+        let outcome = fsops::sync_entries(&self.output, &src_entry, &dest_entry)?;
         if self.preserve_permissions {
             fsops::copy_permissions(&src_entry, &dest_entry)?;
         }
@@ -122,7 +137,7 @@ impl WalkWorker {
     }
 
     fn process_file(&self, entry: &DirEntry) -> io::Result<()> {
-        let rel_path = get_rel_path(&entry.path(), &self.source)?;
+        let rel_path = fsops::get_rel_path(&entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
             return Err(fsops::to_io_error(&format!(
@@ -171,13 +186,13 @@ impl ProgressWorker {
     }
 }
 
-struct Pipeline {
+pub struct Pipeline {
     source: PathBuf,
     destination: PathBuf,
 }
 
 impl Pipeline {
-    fn new(source: &Path, destination: &Path) -> Pipeline {
+    pub fn new(source: &Path, destination: &Path) -> Pipeline {
         Pipeline {
             source: source.to_path_buf(),
             destination: destination.to_path_buf(),
@@ -239,17 +254,8 @@ mod tests {
         let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
         let (src_path, dest_path) = setup_test(&tmp_dir.path());
         let pipeline = Pipeline::new(&src_path, &dest_path);
-        let stats = pipeline.run().unwrap();
-        println!(
-            "{} Synced {} files ({} up to date)",
-            " ✓".color("green"),
-            stats.total,
-            stats.up_to_date
-        );
-        println!(
-            "{} files copied, {} symlinks created, {} symlinks updated",
-            stats.copied, stats.symlink_created, stats.symlink_updated
-        );
+        let stats = pipeline.run();
+        assert!(stats.is_ok());
     }
 
 }

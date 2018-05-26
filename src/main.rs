@@ -4,7 +4,7 @@ extern crate colored;
 extern crate rusync;
 
 use colored::Colorize;
-use rusync::Syncer;
+use rusync::pipeline::Pipeline;
 use std::path::PathBuf;
 use std::process;
 use structopt::StructOpt;
@@ -40,16 +40,15 @@ fn main() {
         destination.to_string_lossy().bold()
     );
 
-    let mut syncer = Syncer::new(&source, &destination);
-    syncer.preserve_permissions(preserve_permissions);
-    let outcome = syncer.sync();
-    match outcome {
+    let pipeline = Pipeline::new(&source, &destination);
+    //pipeline.preserve_permissions(preserve_permissions);
+    let stats = pipeline.run();
+    match stats {
         Err(err) => {
             eprintln!("{}", err);
             process::exit(1);
         }
-        Ok(_) => {
-            let stats = syncer.stats();
+        Ok(stats) => {
             println!(
                 "{} Synced {} files ({} up to date)",
                 " ✓".color("green"),
