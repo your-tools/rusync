@@ -140,7 +140,7 @@ pub fn copy_entry(
         let progress = Progress::Syncing {
             description: src.description().clone(),
             size: src_size as usize,
-            done: done,
+            done,
         };
         progress_sender.send(progress).unwrap();
     }

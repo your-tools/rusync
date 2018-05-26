@@ -41,8 +41,7 @@ impl SyncWorker {
         Ok(())
     }
 
-    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> io::Result<(SyncOutcome)> {
-        let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
+    fn create_missing_dest_dirs(&self, rel_path: &Path) -> io::Result<()> {
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
             return Err(fsops::to_io_error(&format!(
@@ -53,7 +52,12 @@ impl SyncWorker {
         let parent_rel_path = parent_rel_path.unwrap();
         let to_create = self.destination.join(parent_rel_path);
         fs::create_dir_all(to_create)?;
+        Ok(())
+    }
 
+    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> io::Result<(SyncOutcome)> {
+        let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
+        self.create_missing_dest_dirs(&rel_path)?;
         let desc = rel_path.to_string_lossy();
 
         let dest_path = self.destination.join(&rel_path);

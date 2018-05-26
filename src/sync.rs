@@ -13,6 +13,7 @@ use workers::ProgressWorker;
 use workers::SyncWorker;
 use workers::WalkWorker;
 
+#[derive(Default)]
 pub struct Stats {
     pub total: u64,
 
@@ -93,11 +94,11 @@ impl Syncer {
         let progress_outcome = progress_thread.join();
 
         if walker_outcome.is_err() {
-            return Err(format!("Could not join walker thread"));
+            return Err("Could not join walker thread".to_string());
         }
 
         if syncer_outcome.is_err() {
-            return Err(format!("Could not join syncer thread"));
+            return Err("Could not join syncer thread".to_string());
         }
         let syncer_result = syncer_outcome.unwrap();
         if syncer_result.is_err() {
@@ -105,7 +106,7 @@ impl Syncer {
         }
 
         if progress_outcome.is_err() {
-            return Err(format!("Could not join progress thread"));
+            return Err("Could not join progress thread".to_string());
         }
         Ok(progress_outcome.unwrap())
     }

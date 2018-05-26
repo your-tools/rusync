@@ -49,7 +49,7 @@ impl WalkWorker {
         let src_entry = Entry::new(&desc, &entry.path());
         let sent = self.output.send(src_entry);
         if sent.is_err() {
-            return Err(fsops::to_io_error(&format!("output chan is closed")));
+            return Err(fsops::to_io_error(&"output chan is closed".to_string()));
         }
         Ok(())
     }

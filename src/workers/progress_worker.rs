@@ -19,11 +19,7 @@ impl ProgressWorker {
         for progress in self.input.iter() {
             match progress {
                 Progress::DoneSyncing(x) => stats.add_outcome(&x),
-                Progress::Syncing {
-                    description: _,
-                    done,
-                    size,
-                } => {
+                Progress::Syncing { done, size, .. } => {
                     let percent = ((done * 100) as usize) / size;
                     print!("{number:>width$}%\r", number = percent, width = 3);
                     let _ = io::stdout().flush();
