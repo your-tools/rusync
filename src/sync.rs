@@ -23,7 +23,7 @@ pub struct Stats {
 }
 
 impl Stats {
-    fn new() -> Stats {
+    pub fn new() -> Stats {
         Stats {
             total: 0,
             up_to_date: 0,
