@@ -19,6 +19,7 @@ Thank you for your understanding!
 $ cargo install rusync
 $ rusync test/src test/dest
 :: Syncing from test/src to test/dest …
+ 50% 24/50 Downloads/archlinux.iso
  ✓ Synced 2 files (1 up to date)
 ```
 
