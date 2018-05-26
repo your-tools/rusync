@@ -17,7 +17,7 @@ fn get_terminal_width() -> u16 {
     }
     // We're likely not a tty here, so this is a good enough
     // default:
-    return 80;
+    80
 }
 
 fn erase_line() {
