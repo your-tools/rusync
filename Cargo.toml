@@ -17,6 +17,7 @@ pathdiff = "0.1.0"
 colored = "1.6"
 filetime = "0.1"
 structopt = "0.2.8"
+terminal_size = "0.1.7"
 
 [dev-dependencies]
 tempdir = "0.3"
