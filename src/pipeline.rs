@@ -11,6 +11,7 @@ use std::thread;
 use entry::Entry;
 use fsops;
 use fsops::SyncOutcome;
+use fsops::SyncOutcome::*;
 
 pub struct Stats {
     pub total: u64,
