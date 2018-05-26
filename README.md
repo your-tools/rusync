@@ -19,25 +19,32 @@ Thank you for your understanding!
 $ cargo install rusync
 $ rusync test/src test/dest
 :: Syncing from test/src to test/dest …
--> foo/baz.txt
--> foo/bar.txt
  ✓ Synced 2 files (1 up to date)
 ```
 
 # Features
 
 * Easy to remember command line syntax
-* Colorful and *useful* output
+
+* Print progress on one line, and erase it when done, thus avoiding flooding your terminal
+  with useless noise.
+
 * Un-surprising behavior: missing directories are created
-  on the fly, files are only copied if destination is missing or older than
-  the source
+  on the fly, files are only copied if:
+
+  * Destination is missing
+  * Older than the source
+  * Or size is different
+
 * Minimalistic implementation
 
 # Missing
 
-There are *tons* of stuff in `rsync` we don't implement. Here's what's missing and I think `rusync` should have:
+There are *tons* of stuff in `rsync` we don't implement.
 
-* Option to delete extraneous files
-* Global progress bar (hard)
+But for me, the goal was to learn more about Rust and I've learned plenty of things already.
+
+The big missing feature is an option to delete extraneous files. Maybe I'll start working on it
+one day.
 
 For the rest, well, patches are welcome!
