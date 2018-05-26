@@ -11,7 +11,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc;
 
-use colored::Colorize;
 use filetime::FileTime;
 
 use entry::Entry;
@@ -86,7 +85,6 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         Some(true) => {
             let dest_target = std::fs::read_link(dest.path())?;
             if dest_target != src_target {
-                println!("{} removing {}", "<-".red(), src.description().bold());
                 fs::remove_file(dest.path())?;
                 outcome = SyncOutcome::SymlinkUpdated;
             } else {
@@ -105,12 +103,6 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
             outcome = SyncOutcome::SymlinkCreated;
         }
     }
-    println!(
-        "{} creating {} -> {}",
-        "->".blue(),
-        src.description().bold(),
-        src_target.to_string_lossy()
-    );
     unix::fs::symlink(src_target, &dest.path())?;
     Ok(outcome)
 }
@@ -125,7 +117,6 @@ pub fn copy_entry(
     let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
     let dest_path = dest.path();
-    println!("{} copying {}", "->".blue(), src.description().bold());
     let mut dest_file = File::create(dest_path)?;
     let mut buffer = vec![0; BUFFER_SIZE];
     loop {
@@ -140,7 +131,7 @@ pub fn copy_entry(
             size: src_size as usize,
             done: num_read,
         };
-        progress_sender.send(progress).unwrap();
+        let _ = progress_sender.send(progress);
     }
     drop(src_file);
     drop(dest_file);
@@ -167,6 +158,7 @@ pub fn sync_entries(
     src: &Entry,
     dest: &Entry,
 ) -> io::Result<(SyncOutcome)> {
+    let _ = progress_sender.send(Progress::StartSync(src.description().to_string()));
     src.is_link().expect("src.is_link should not be None");
     if src.is_link().unwrap() {
         return copy_link(&src, &dest);
