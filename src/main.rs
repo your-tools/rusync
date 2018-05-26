@@ -4,11 +4,10 @@ extern crate colored;
 extern crate rusync;
 
 use colored::Colorize;
-use rusync::sync;
+use rusync::Syncer;
 use std::path::PathBuf;
 use std::process;
 use structopt::StructOpt;
-use sync::Syncer;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "rusync")]
