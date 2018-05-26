@@ -126,9 +126,9 @@ pub fn copy_entry(
     let src_size = src_meta.len();
     let mut done = 0;
     let dest_path = dest.path();
+    println!("{} copying {}", "->".blue(), src.description().bold());
     let mut dest_file = File::create(dest_path)?;
     let mut buffer = vec![0; BUFFER_SIZE];
-    println!("{} copying {}", "->".blue(), src.description().bold());
     loop {
         let num_read = src_file.read(&mut buffer)?;
         if num_read == 0 {

@@ -4,6 +4,7 @@ extern crate tempdir;
 extern crate rusync;
 
 use std::fs;
+use std::fs::File;
 use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -145,4 +146,28 @@ fn rewrite_partially_written_files() {
     syncer.sync().expect("");
     let actual = fs::read_to_string(&dest_top).expect("");
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn dest_read_only() {
+    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    fs::create_dir_all(&dest_path).expect("");
+
+    let dest_top = dest_path.join("top.txt");
+    fs::write(&dest_top, "this is read only").expect("");
+    let top_file = File::open(dest_top).expect("");
+    let metadata = top_file.metadata().unwrap();
+    let mut permissions = metadata.permissions();
+    permissions.set_readonly(true);
+    top_file.set_permissions(permissions).unwrap();
+
+    let src_top = src_path.join("top.txt");
+    make_recent(&src_top).expect("could not make top.txt recent");
+
+    let syncer = Syncer::new(&src_path, &dest_path);
+    let result = syncer.sync();
+
+    assert!(result.is_err());
+    println!("{:?}", result.err().unwrap());
 }

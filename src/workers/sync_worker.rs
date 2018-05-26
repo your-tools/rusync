@@ -32,13 +32,13 @@ impl SyncWorker {
         }
     }
 
-    pub fn start(self, opts: SyncOptions) {
+    pub fn start(self, opts: SyncOptions) -> io::Result<()> {
         for entry in self.input.iter() {
-            // FIXME: handle errors
-            let sync_outcome = self.sync(&entry, opts).unwrap();
+            let sync_outcome = self.sync(&entry, opts)?;
             let progress = Progress::DoneSyncing(sync_outcome);
             self.output.send(progress).unwrap();
         }
+        Ok(())
     }
 
     fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> io::Result<(SyncOutcome)> {

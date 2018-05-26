@@ -99,6 +99,10 @@ impl Syncer {
         if syncer_outcome.is_err() {
             return Err(format!("Could not join syncer thread"));
         }
+        let syncer_result = syncer_outcome.unwrap();
+        if syncer_result.is_err() {
+            return Err(format!("{}", syncer_result.err().unwrap()));
+        }
 
         if progress_outcome.is_err() {
             return Err(format!("Could not join progress thread"));

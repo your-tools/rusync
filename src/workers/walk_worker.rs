@@ -47,7 +47,10 @@ impl WalkWorker {
 
         let desc = rel_path.to_string_lossy();
         let src_entry = Entry::new(&desc, &entry.path());
-        self.output.send(src_entry).unwrap();
+        let sent = self.output.send(src_entry);
+        if sent.is_err() {
+            return Err(fsops::to_io_error(&format!("output chan is closed")));
+        }
         Ok(())
     }
 
