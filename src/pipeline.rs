@@ -1,57 +1,96 @@
+extern crate pathdiff;
+
+use colored::Colorize;
+use std::fs;
+use std::fs::DirEntry;
+use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
-use std::time::Duration;
 
+use entry::Entry;
+use fsops;
+use fsops::SyncOutcome;
 use sync::Stats;
 
-#[derive(Debug)]
-struct Entry {
-    src: String,
-    size: u32,
+fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
+    let rel_path = pathdiff::diff_paths(&a, &b);
+    if rel_path.is_none() {
+        Err(fsops::to_io_error(&format!(
+            "Could not get relative path from {} to {}",
+            &a.to_string_lossy(),
+            &a.to_string_lossy()
+        )))
+    } else {
+        Ok(rel_path.unwrap())
+    }
 }
 
-#[derive(Debug)]
-struct Progress {
-    src: String,
-    size: u32,
-    done: u32,
+enum Progress {
+    DoneSyncing(SyncOutcome),
+    Syncing {
+        description: String,
+        size: u64,
+        done: u64,
+    },
 }
 
 struct SyncWorker {
     input: Receiver<Entry>,
     output: Sender<Progress>,
+    source: PathBuf,
+    destination: PathBuf,
+    preserve_permissions: bool,
 }
 
 impl SyncWorker {
-    fn new(input: Receiver<Entry>, output: Sender<Progress>) -> SyncWorker {
-        SyncWorker { input, output }
+    fn new(
+        source: &Path,
+        destination: &Path,
+        input: Receiver<Entry>,
+        output: Sender<Progress>,
+    ) -> SyncWorker {
+        SyncWorker {
+            source: source.to_path_buf(),
+            preserve_permissions: true,
+            destination: destination.to_path_buf(),
+            input,
+            output,
+        }
     }
 
     fn start(self) {
         for entry in self.input.iter() {
-            let progress = Progress {
-                src: entry.src.clone(),
-                size: entry.size,
-                done: 0,
-            };
-            self.output.send(progress).unwrap();
-            let progress = Progress {
-                src: entry.src.clone(),
-                size: entry.size,
-                done: entry.size / 2,
-            };
-            thread::sleep(Duration::from_secs(1));
-            self.output.send(progress).unwrap();
-            let progress = Progress {
-                src: entry.src.clone(),
-                size: entry.size,
-                done: entry.size,
-            };
-            thread::sleep(Duration::from_secs(1));
+            // FIXME: handle errors
+            let sync_outcome = self.sync(&entry).unwrap();
+            let progress = Progress::DoneSyncing(sync_outcome);
             self.output.send(progress).unwrap();
         }
+    }
+
+    fn sync(&self, src_entry: &Entry) -> io::Result<(SyncOutcome)> {
+        let rel_path = get_rel_path(&src_entry.path(), &self.source)?;
+        let parent_rel_path = rel_path.parent();
+        if parent_rel_path.is_none() {
+            return Err(fsops::to_io_error(&format!(
+                "Could not get parent path of {}",
+                rel_path.to_string_lossy()
+            )));
+        }
+        let parent_rel_path = parent_rel_path.unwrap();
+        let to_create = self.destination.join(parent_rel_path);
+        fs::create_dir_all(to_create)?;
+
+        let desc = rel_path.to_string_lossy();
+
+        let dest_path = self.destination.join(&rel_path);
+        let dest_entry = Entry::new(&desc, &dest_path);
+        let outcome = fsops::sync_entries(&src_entry, &dest_entry)?;
+        if self.preserve_permissions {
+            fsops::copy_permissions(&src_entry, &dest_entry)?;
+        }
+        Ok(outcome)
     }
 }
 
@@ -68,18 +107,42 @@ impl WalkWorker {
         }
     }
 
-    fn start(self) {
-        let foo_entry = Entry {
-            src: String::from("foo.txt"),
-            size: 100,
-        };
-        let bar_entry = Entry {
-            src: String::from("bar.txt"),
-            size: 100,
-        };
-        self.output.send(foo_entry).expect("could not send foo");
-        thread::sleep(Duration::from_millis(500));
-        self.output.send(bar_entry).expect("could not send bar");
+    fn walk_dir(&self, subdir: &Path) -> io::Result<()> {
+        for entry in fs::read_dir(subdir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                let subdir = path;
+                self.walk_dir(&subdir)?;
+            } else {
+                self.process_file(&entry)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn process_file(&self, entry: &DirEntry) -> io::Result<()> {
+        let rel_path = get_rel_path(&entry.path(), &self.source)?;
+        let parent_rel_path = rel_path.parent();
+        if parent_rel_path.is_none() {
+            return Err(fsops::to_io_error(&format!(
+                "Could not get parent path of {}",
+                rel_path.to_string_lossy()
+            )));
+        }
+
+        let desc = rel_path.to_string_lossy();
+        let src_entry = Entry::new(&desc, &entry.path());
+        self.output.send(src_entry).unwrap();
+        Ok(())
+    }
+
+    fn start(&self) {
+        let top_dir = &self.source.clone();
+        let outcome = self.walk_dir(top_dir);
+        if outcome.is_err() {
+            // Send err to output
+        }
     }
 }
 
@@ -92,10 +155,19 @@ impl ProgressWorker {
         ProgressWorker { input }
     }
 
-    fn start(self) {
+    fn start(self) -> Stats {
+        let mut stats = Stats::new();
         for progress in self.input.iter() {
-            println!("{} {}/{}", progress.src, progress.done, progress.size);
+            match progress {
+                Progress::DoneSyncing(x) => stats.add_outcome(&x),
+                Progress::Syncing {
+                    description,
+                    done,
+                    size,
+                } => println!("{} {} {}", description, done, size),
+            }
         }
+        stats
     }
 }
 
@@ -108,7 +180,7 @@ impl Pipeline {
     fn new(source: &Path, destination: &Path) -> Pipeline {
         Pipeline {
             source: source.to_path_buf(),
-            destination: source.to_path_buf(),
+            destination: destination.to_path_buf(),
         }
     }
 
@@ -116,20 +188,13 @@ impl Pipeline {
         let (walker_output, syncer_input) = channel::<Entry>();
         let (syncer_output, progress_input) = channel::<Progress>();
         let walk_worker = WalkWorker::new(&self.source, walker_output);
-        let sync_worker = SyncWorker::new(syncer_input, syncer_output);
+        let sync_worker =
+            SyncWorker::new(&self.source, &self.destination, syncer_input, syncer_output);
         let progress_worker = ProgressWorker::new(progress_input);
 
-        let walker_thread = thread::spawn(|| {
-            walk_worker.start();
-        });
-
-        let syncer_thread = thread::spawn(|| {
-            sync_worker.start();
-        });
-
-        let progress_thread = thread::spawn(|| {
-            progress_worker.start();
-        });
+        let walker_thread = thread::spawn(move || walk_worker.start());
+        let syncer_thread = thread::spawn(move || sync_worker.start());
+        let progress_thread = thread::spawn(|| progress_worker.start());
 
         let walker_outcome = walker_thread.join();
         let syncer_outcome = syncer_thread.join();
@@ -146,7 +211,7 @@ impl Pipeline {
         if progress_outcome.is_err() {
             return Err(format!("Could not join progress thread"));
         }
-        Ok(Stats::new())
+        Ok(progress_outcome.unwrap())
     }
 }
 
@@ -174,7 +239,17 @@ mod tests {
         let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
         let (src_path, dest_path) = setup_test(&tmp_dir.path());
         let pipeline = Pipeline::new(&src_path, &dest_path);
-        pipeline.run();
+        let stats = pipeline.run().unwrap();
+        println!(
+            "{} Synced {} files ({} up to date)",
+            " ✓".color("green"),
+            stats.total,
+            stats.up_to_date
+        );
+        println!(
+            "{} files copied, {} symlinks created, {} symlinks updated",
+            stats.copied, stats.symlink_created, stats.symlink_updated
+        );
     }
 
 }
