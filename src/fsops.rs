@@ -115,7 +115,11 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     Ok(outcome)
 }
 
-pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
+pub fn copy_entry(
+    progress_sender: &mpsc::Sender<Progress>,
+    src: &Entry,
+    dest: &Entry,
+) -> io::Result<SyncOutcome> {
     let src_path = src.path();
     let mut src_file = File::open(src_path)?;
     let src_meta = src.metadata().expect("src_meta should not be None");
@@ -133,9 +137,12 @@ pub fn copy_entry(src: &Entry, dest: &Entry) -> io::Result<SyncOutcome> {
         dest_file.write_all(&buffer[0..num_read])?;
         dest_file.flush()?;
         done += num_read;
-        let percent = ((done * 100) as u64) / src_size;
-        print!("{number:>width$}%\r", number = percent, width = 3);
-        let _ = io::stdout().flush();
+        let progress = Progress::Syncing {
+            description: src.description().clone(),
+            size: src_size as usize,
+            done: done,
+        };
+        progress_sender.send(progress).unwrap();
     }
     drop(src_file);
     drop(dest_file);
@@ -158,7 +165,7 @@ fn is_truncated(src: &Entry, dest: &Entry) -> bool {
 }
 
 pub fn sync_entries(
-    output: &mpsc::Sender<Progress>,
+    progress_sender: &mpsc::Sender<Progress>,
     src: &Entry,
     dest: &Entry,
 ) -> io::Result<(SyncOutcome)> {
@@ -170,7 +177,7 @@ pub fn sync_entries(
     let more_recent = is_more_recent_than(&src, &dest)?;
     // TODO: check if files really are different ?
     if more_recent || truncated {
-        return copy_entry(&src, &dest);
+        return copy_entry(&progress_sender, &src, &dest);
     }
     Ok(SyncOutcome::UpToDate)
 }

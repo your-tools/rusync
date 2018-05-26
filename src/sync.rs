@@ -3,6 +3,7 @@ extern crate colored;
 use std::fs;
 use std::fs::DirEntry;
 use std::io;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -47,8 +48,8 @@ pub enum Progress {
     DoneSyncing(SyncOutcome),
     Syncing {
         description: String,
-        size: u64,
-        done: u64,
+        size: usize,
+        done: usize,
     },
 }
 
@@ -188,10 +189,14 @@ impl ProgressWorker {
             match progress {
                 Progress::DoneSyncing(x) => stats.add_outcome(&x),
                 Progress::Syncing {
-                    description,
+                    description: _,
                     done,
                     size,
-                } => println!("{} {} {}", description, done, size),
+                } => {
+                    let percent = ((done * 100) as usize) / size;
+                    print!("{number:>width$}%\r", number = percent, width = 3);
+                    let _ = io::stdout().flush();
+                }
             }
         }
         stats
