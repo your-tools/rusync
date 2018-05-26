@@ -27,6 +27,7 @@ impl ProgressWorker {
                     index += 1;
                 }
                 Progress::DoneSyncing(x) => {
+                    print!("                                                                                \r");
                     stats.add_outcome(&x);
                     file_done = 0;
                 }
