@@ -6,4 +6,5 @@ mod fsops;
 mod progress;
 pub mod sync;
 mod workers;
+pub use sync::Stats;
 pub use sync::Syncer;

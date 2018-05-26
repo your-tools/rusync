@@ -4,6 +4,7 @@ extern crate colored;
 extern crate rusync;
 
 use colored::Colorize;
+use rusync::Stats;
 use rusync::Syncer;
 use std::path::PathBuf;
 use std::process;
@@ -28,6 +29,19 @@ impl Opt {
     }
 }
 
+fn print_stats(stats: Stats) {
+    println!(
+        "{} Synced {} files ({} up to date)",
+        " ✓".color("green"),
+        stats.total,
+        stats.up_to_date
+    );
+    println!(
+        "{} files copied, {} symlinks created, {} symlinks updated",
+        stats.copied, stats.symlink_created, stats.symlink_updated
+    );
+}
+
 fn main() {
     let opt = Opt::from_args();
     let source = &opt.source;
@@ -49,17 +63,7 @@ fn main() {
             process::exit(1);
         }
         Ok(stats) => {
-            println!(
-                "{} Synced {} files ({} up to date)",
-                " ✓".color("green"),
-                stats.total,
-                stats.up_to_date
-            );
-            println!(
-                "{} files copied, {} symlinks created, {} symlinks updated",
-                stats.copied, stats.symlink_created, stats.symlink_updated
-            );
-
+            print_stats(stats);
             process::exit(0);
         }
     }
