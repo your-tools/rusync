@@ -57,7 +57,19 @@ struct SyncWorker {
     output: Sender<Progress>,
     source: PathBuf,
     destination: PathBuf,
+}
+
+#[derive(Copy, Clone)]
+struct SyncOptions {
     preserve_permissions: bool,
+}
+
+impl SyncOptions {
+    fn new() -> SyncOptions {
+        SyncOptions {
+            preserve_permissions: true,
+        }
+    }
 }
 
 impl SyncWorker {
@@ -69,23 +81,22 @@ impl SyncWorker {
     ) -> SyncWorker {
         SyncWorker {
             source: source.to_path_buf(),
-            preserve_permissions: true,
             destination: destination.to_path_buf(),
             input,
             output,
         }
     }
 
-    fn start(self) {
+    fn start(self, opts: SyncOptions) {
         for entry in self.input.iter() {
             // FIXME: handle errors
-            let sync_outcome = self.sync(&entry).unwrap();
+            let sync_outcome = self.sync(&entry, opts).unwrap();
             let progress = Progress::DoneSyncing(sync_outcome);
             self.output.send(progress).unwrap();
         }
     }
 
-    fn sync(&self, src_entry: &Entry) -> io::Result<(SyncOutcome)> {
+    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> io::Result<(SyncOutcome)> {
         let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
@@ -103,7 +114,7 @@ impl SyncWorker {
         let dest_path = self.destination.join(&rel_path);
         let dest_entry = Entry::new(&desc, &dest_path);
         let outcome = fsops::sync_entries(&self.output, &src_entry, &dest_entry)?;
-        if self.preserve_permissions {
+        if opts.preserve_permissions {
             fsops::copy_permissions(&src_entry, &dest_entry)?;
         }
         Ok(outcome)
@@ -190,7 +201,7 @@ impl ProgressWorker {
 pub struct Syncer {
     source: PathBuf,
     destination: PathBuf,
-    preserve_permissions: bool,
+    options: SyncOptions,
 }
 
 impl Syncer {
@@ -198,12 +209,12 @@ impl Syncer {
         Syncer {
             source: source.to_path_buf(),
             destination: destination.to_path_buf(),
-            preserve_permissions: true,
+            options: SyncOptions::new(),
         }
     }
 
     pub fn preserve_permissions(&mut self, preserve_permissions: bool) {
-        self.preserve_permissions = preserve_permissions
+        self.options.preserve_permissions = preserve_permissions;
     }
 
     pub fn sync(self) -> Result<Stats, String> {
@@ -215,7 +226,7 @@ impl Syncer {
         let progress_worker = ProgressWorker::new(progress_input);
 
         let walker_thread = thread::spawn(move || walk_worker.start());
-        let syncer_thread = thread::spawn(move || sync_worker.start());
+        let syncer_thread = thread::spawn(move || sync_worker.start(self.options));
         let progress_thread = thread::spawn(|| progress_worker.start());
 
         let walker_outcome = walker_thread.join();
