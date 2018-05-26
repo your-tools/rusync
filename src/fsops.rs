@@ -1,3 +1,5 @@
+extern crate pathdiff;
+
 use std;
 use std::fs;
 use std::fs::File;
@@ -5,11 +7,15 @@ use std::io;
 use std::io::Read;
 use std::io::Write;
 use std::os::unix;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::mpsc;
 
 use colored::Colorize;
 use filetime::FileTime;
 
 use entry::Entry;
+use pipeline::Progress;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
@@ -23,6 +29,19 @@ pub enum SyncOutcome {
 
 pub fn to_io_error(message: &str) -> io::Error {
     io::Error::new(io::ErrorKind::Other, message)
+}
+
+pub fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
+    let rel_path = pathdiff::diff_paths(&a, &b);
+    if rel_path.is_none() {
+        Err(to_io_error(&format!(
+            "Could not get relative path from {} to {}",
+            &a.to_string_lossy(),
+            &a.to_string_lossy()
+        )))
+    } else {
+        Ok(rel_path.unwrap())
+    }
 }
 
 fn is_more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
@@ -138,7 +157,11 @@ fn is_truncated(src: &Entry, dest: &Entry) -> bool {
     false
 }
 
-pub fn sync_entries(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
+pub fn sync_entries(
+    output: &mpsc::Sender<Progress>,
+    src: &Entry,
+    dest: &Entry,
+) -> io::Result<(SyncOutcome)> {
     src.is_link().expect("src.is_link should not be None");
     if src.is_link().unwrap() {
         return copy_link(&src, &dest);
