@@ -143,7 +143,7 @@ pub fn copy_entry(
     Ok(SyncOutcome::FileCopied)
 }
 
-fn is_truncated(src: &Entry, dest: &Entry) -> bool {
+fn has_different_size(src: &Entry, dest: &Entry) -> bool {
     let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
 
@@ -152,10 +152,7 @@ fn is_truncated(src: &Entry, dest: &Entry) -> bool {
         return true;
     }
     let dest_size = dest_meta.unwrap().len();
-    if dest_size < src_size {
-        return true;
-    }
-    false
+    dest_size != src_size
 }
 
 pub fn sync_entries(
@@ -168,10 +165,10 @@ pub fn sync_entries(
     if src.is_link().unwrap() {
         return copy_link(&src, &dest);
     }
-    let truncated = is_truncated(&src, &dest);
+    let different_size = has_different_size(&src, &dest);
     let more_recent = is_more_recent_than(&src, &dest)?;
     // TODO: check if files really are different ?
-    if more_recent || truncated {
+    if more_recent || different_size {
         return copy_entry(&progress_sender, &src, &dest);
     }
     Ok(SyncOutcome::UpToDate)
