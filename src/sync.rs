@@ -16,6 +16,7 @@ use workers::WalkWorker;
 #[derive(Default)]
 pub struct Stats {
     pub num_files: u64,
+    pub total_size: usize,
 
     pub num_synced: u64,
     pub up_to_date: u64,
@@ -29,6 +30,7 @@ impl Stats {
     pub fn new() -> Stats {
         Stats {
             num_files: 0,
+            total_size: 0,
 
             num_synced: 0,
             up_to_date: 0,

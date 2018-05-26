@@ -3,7 +3,7 @@ use std::option::Option;
 use std::path::Path;
 use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     description: String,
     path: PathBuf,
