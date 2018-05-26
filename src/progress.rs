@@ -5,7 +5,6 @@ pub enum Progress {
     StartSync(String),
     Todo {
         num_files: u64,
-        total_size: usize,
     },
     Syncing {
         description: String,

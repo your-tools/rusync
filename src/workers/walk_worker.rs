@@ -30,7 +30,6 @@ impl WalkWorker {
 
     fn walk(&self) -> io::Result<()> {
         let mut num_files = 0;
-        let mut total_size = 0;
         let mut subdirs: Vec<PathBuf> = vec![self.source.to_path_buf()];
         while !subdirs.is_empty() {
             let subdir = subdirs.pop().unwrap();
@@ -40,13 +39,9 @@ impl WalkWorker {
                 if path.is_dir() {
                     subdirs.push(path);
                 } else {
-                    let meta = self.process_file(&entry)?;
+                    self.process_file(&entry)?;
                     num_files += 1;
-                    total_size += meta.len();
-                    let sent = self.progress_output.send(Progress::Todo {
-                        num_files,
-                        total_size: total_size as usize,
-                    });
+                    let sent = self.progress_output.send(Progress::Todo { num_files });
                     if sent.is_err() {
                         return Err(fsops::to_io_error(&"stats output chan is closed".to_string()));
                     }
@@ -56,7 +51,7 @@ impl WalkWorker {
         Ok(())
     }
 
-    fn process_file(&self, entry: &DirEntry) -> io::Result<fs::Metadata> {
+    fn process_file(&self, entry: &DirEntry) -> io::Result<()> {
         let rel_path = fsops::get_rel_path(&entry.path(), &self.source)?;
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
@@ -68,12 +63,11 @@ impl WalkWorker {
 
         let desc = rel_path.to_string_lossy();
         let src_entry = Entry::new(&desc, &entry.path());
-        let metadata = src_entry.metadata().unwrap().clone();
         let sent = self.entry_output.send(src_entry);
         if sent.is_err() {
             return Err(fsops::to_io_error(&"entry output chan is closed".to_string()));
         }
-        Ok(metadata)
+        Ok(())
     }
 
     pub fn start(&self) {

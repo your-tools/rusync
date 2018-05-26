@@ -21,13 +21,7 @@ impl ProgressWorker {
         let mut index = 0;
         for progress in self.input.iter() {
             match progress {
-                Progress::Todo {
-                    num_files,
-                    total_size,
-                } => {
-                    stats.num_files = num_files;
-                    stats.total_size = total_size;
-                }
+                Progress::Todo { num_files } => stats.num_files = num_files,
                 Progress::StartSync(x) => {
                     current_file = x;
                     index += 1;
