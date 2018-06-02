@@ -19,3 +19,11 @@ search = 'version = "{current_version}"'
 [[hook]]
 name = "Check changelog"
 cmd = "python tools/check-changelog.py {new_version}"
+
+[[hook]]
+name = "Run tests"
+cmd = "cargo test"
+
+[[hook]]
+name = "Run clippy"
+cmd = "cargo +nightly clippy"
