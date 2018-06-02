@@ -78,17 +78,13 @@ impl WalkWorker {
 
         let desc = rel_path.to_string_lossy();
         let src_entry = Entry::new(&desc, &entry.path());
-        let metadata = src_entry.metadata();
-        if metadata.is_none() {
-            return None;
-        }
-        let metadata = metadata.unwrap();
+        let metadata = src_entry.metadata()?;
         let sent = self.entry_output.send(src_entry.clone());
         if sent.is_err() {
             // entry output chan is closed
             return None;
         }
-        return Some(metadata.clone());
+        Some(metadata.clone())
     }
 
     pub fn start(&self) {
