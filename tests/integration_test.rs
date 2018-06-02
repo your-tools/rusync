@@ -51,7 +51,7 @@ fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
     let src_path = tmp_path.join("src");
     let dest_path = tmp_path.join("dest");
     let status = Command::new("cp")
-        .args(&["-r", "tests/data", &src_path.to_string_lossy()])
+        .args(&["-R", "tests/data", &src_path.to_string_lossy()])
         .status()
         .expect("Failed to execute process");
     assert!(status.success());
