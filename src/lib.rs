@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 extern crate colored;
 extern crate filetime;
 extern crate terminal_size;
