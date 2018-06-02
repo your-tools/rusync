@@ -1,3 +1,7 @@
+# v0.4.0
+
+* Display an ETA at the right of the progress bar.
+
 # v0.3.1
 
 * Exit early if the source given on the command line is not an argument. We used to display a weird
