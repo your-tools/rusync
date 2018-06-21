@@ -1,3 +1,8 @@
+# v0.4.1
+
+* Improve error handling: display more details about the file operation that failed
+  instead of just the raw io::Error
+
 # v0.4.0
 
 * Display an ETA at the right of the progress bar.
