@@ -110,7 +110,7 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> FSResult<()> {
     // is_link should not be none because we should have been able to
     // read its metadata way back in WalkWorker
     let is_link = src.is_link()
-        .expect(&format!("is_link was Nonef for {:?}", src));
+        .unwrap_or_else(|| panic!("is_link was None for {:?}", src));
     if is_link {
         return Ok(());
     }
@@ -312,10 +312,10 @@ mod tests {
     use std::path::Path;
     use std::path::PathBuf;
 
+    use super::copy_link;
     use super::Entry;
     use super::FSResult;
     use super::SyncOutcome;
-    use super::copy_link;
 
     fn create_file(path: &Path) {
         let mut out = File::create(path).expect(&format!("could not open {:?} for writing", path));
