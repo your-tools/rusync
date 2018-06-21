@@ -98,14 +98,37 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
 }
 
 fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
-    let src_target = std::fs::read_link(src.path())?;
+    let src_target = std::fs::read_link(src.path());
+    if let Err(e) = src_target {
+        return Err(to_io_error(&format!(
+            "Could not read link {}: {}",
+            src.path().to_string_lossy(),
+            e
+        )));
+    }
+    let src_target = src_target.unwrap();
     let is_link = dest.is_link();
     let outcome;
     match is_link {
         Some(true) => {
-            let dest_target = std::fs::read_link(dest.path())?;
+            let dest_target = std::fs::read_link(dest.path());
+            if let Err(e) = dest_target {
+                return Err(to_io_error(&format!(
+                    "Could not read link {}: {}",
+                    dest.path().to_string_lossy(),
+                    e
+                )));
+            }
+            let dest_target = dest_target.unwrap();
             if dest_target != src_target {
-                fs::remove_file(dest.path())?;
+                let rm_result = fs::remove_file(dest.path());
+                if let Err(e) = rm_result {
+                    return Err(to_io_error(&format!(
+                        "Could not remove {} while updating link: {}",
+                        dest.description(),
+                        e
+                    )));
+                }
                 outcome = SyncOutcome::SymlinkUpdated;
             } else {
                 return Ok(SyncOutcome::UpToDate);
@@ -123,8 +146,18 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
             outcome = SyncOutcome::SymlinkCreated;
         }
     }
-    unix::fs::symlink(src_target, &dest.path())?;
-    Ok(outcome)
+    let symlink_result = unix::fs::symlink(&src_target, &dest.path());
+    match symlink_result {
+        Err(e) => {
+            return Err(to_io_error(&format!(
+                "Could not create link from {} to {}: {}",
+                dest.path().to_string_lossy(),
+                &src_target.to_string_lossy(),
+                e
+            )))
+        }
+        Ok(_) => return Ok(outcome),
+    }
 }
 
 pub fn copy_entry(
@@ -133,19 +166,58 @@ pub fn copy_entry(
     dest: &Entry,
 ) -> io::Result<SyncOutcome> {
     let src_path = src.path();
-    let mut src_file = File::open(src_path)?;
+    let src_file = File::open(src_path);
+    if let Err(e) = src_file {
+        return Err(to_io_error(&format!(
+            "Could not open {} for reading: {}",
+            src_path.to_string_lossy(),
+            e
+        )));
+    }
+    let mut src_file = src_file.unwrap();
     let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
     let dest_path = dest.path();
-    let mut dest_file = File::create(dest_path)?;
+    let dest_file = File::create(dest_path);
+    if let Err(e) = dest_file {
+        return Err(to_io_error(&format!(
+            "Could not open{} for writing: {}",
+            dest_path.to_string_lossy(),
+            e
+        )));
+    }
+    let mut dest_file = dest_file.unwrap();
     let mut buffer = vec![0; BUFFER_SIZE];
     loop {
-        let num_read = src_file.read(&mut buffer)?;
+        let num_read = src_file.read(&mut buffer);
+        if let Err(e) = num_read {
+            return Err(to_io_error(&format!(
+                "Could not read from {}: {}",
+                src.description(),
+                e
+            )));
+        }
+
+        let num_read = num_read.unwrap();
         if num_read == 0 {
             break;
         }
-        dest_file.write_all(&buffer[0..num_read])?;
-        dest_file.flush()?;
+        let write_result = dest_file.write_all(&buffer[0..num_read]);
+        if let Err(e) = write_result {
+            return Err(to_io_error(&format!(
+                "Could not write to {}: {}",
+                dest.description(),
+                e
+            )));
+        }
+        let flush_result = dest_file.flush();
+        if let Err(e) = flush_result {
+            return Err(to_io_error(&format!(
+                "Could not flush {}: {}",
+                dest.description(),
+                e
+            )));
+        }
         let progress = Progress::Syncing {
             description: src.description().clone(),
             size: src_size as usize,
