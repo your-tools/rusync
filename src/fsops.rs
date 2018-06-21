@@ -179,7 +179,7 @@ pub fn copy_entry(
     let dest_file = File::create(dest_path);
     if let Err(e) = dest_file {
         return Err(to_io_error(&format!(
-            "Could not open{} for writing: {}",
+            "Could not open {} for writing: {}",
             dest_path.to_string_lossy(),
             e
         )));
