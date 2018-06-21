@@ -148,15 +148,13 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     }
     let symlink_result = unix::fs::symlink(&src_target, &dest.path());
     match symlink_result {
-        Err(e) => {
-            return Err(to_io_error(&format!(
-                "Could not create link from {} to {}: {}",
-                dest.path().to_string_lossy(),
-                &src_target.to_string_lossy(),
-                e
-            )))
-        }
-        Ok(_) => return Ok(outcome),
+        Err(e) => Err(to_io_error(&format!(
+            "Could not create link from {} to {}: {}",
+            dest.path().to_string_lossy(),
+            &src_target.to_string_lossy(),
+            e
+        ))),
+        Ok(_) => Ok(outcome),
     }
 }
 
