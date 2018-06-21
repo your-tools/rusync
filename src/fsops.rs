@@ -43,9 +43,9 @@ pub fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
     }
 }
 
-fn is_more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
+fn is_more_recent_than(src: &Entry, dest: &Entry) -> bool {
     if !dest.exists() {
-        return Ok(true);
+        return true;
     }
 
     let src_meta = &src.metadata();
@@ -61,7 +61,7 @@ fn is_more_recent_than(src: &Entry, dest: &Entry) -> io::Result<bool> {
     let dest_precise =
         dest_mtime.seconds() * 1000 * 1000 * 1000 + u64::from(dest_mtime.nanoseconds());
 
-    Ok(src_precise > dest_precise)
+    src_precise > dest_precise
 }
 
 pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
@@ -166,7 +166,7 @@ pub fn sync_entries(
         return copy_link(&src, &dest);
     }
     let different_size = has_different_size(&src, &dest);
-    let more_recent = is_more_recent_than(&src, &dest)?;
+    let more_recent = is_more_recent_than(&src, &dest);
     // TODO: check if files really are different ?
     if more_recent || different_size {
         return copy_entry(&progress_sender, &src, &dest);
