@@ -77,8 +77,23 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
     // and we checked that right above:
     let src_meta = &src_meta.expect(&format!("src_meta was None for {:?}", src));
     let permissions = src_meta.permissions();
-    let dest_file = File::open(dest.path())?;
-    dest_file.set_permissions(permissions)?;
+    let dest_file = File::open(dest.path());
+    if let Err(e) = dest_file {
+        return Err(to_io_error(&format!(
+            "Could not open {} while copying permissions: {}",
+            dest.description(),
+            e
+        )));
+    }
+    let dest_file = dest_file.unwrap();
+
+    if let Err(e) = dest_file.set_permissions(permissions) {
+        return Err(to_io_error(&format!(
+            "Could set permissions for {}: {}",
+            dest.description(),
+            e
+        )));
+    }
     Ok(())
 }
 
