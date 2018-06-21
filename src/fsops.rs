@@ -18,6 +18,46 @@ use progress::Progress;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
+#[derive(Debug)]
+pub struct FSError {
+    description: String,
+    cause: Option<std::io::Error>,
+}
+
+impl std::error::Error for FSError {
+    fn description(&self) -> &str {
+        self.description.as_str()
+    }
+}
+
+impl std::fmt::Display for FSError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if let Some(cause) = &self.cause {
+            write!(f, "{}: {}", &self.description, cause)
+        } else {
+            write!(f, "{}", &self.description)
+        }
+    }
+}
+
+impl FSError {
+    pub fn from_io_error(cause: std::io::Error, description: &str) -> FSError {
+        FSError {
+            description: String::from(description),
+            cause: Some(cause),
+        }
+    }
+
+    pub fn from_description(description: &str) -> FSError {
+        FSError {
+            description: String::from(description),
+            cause: None,
+        }
+    }
+}
+
+pub type FSResult<T> = Result<T, FSError>;
+
 #[derive(PartialEq, Debug)]
 pub enum SyncOutcome {
     UpToDate,
@@ -30,14 +70,15 @@ pub fn to_io_error(message: &str) -> io::Error {
     io::Error::new(io::ErrorKind::Other, message)
 }
 
-pub fn get_rel_path(a: &Path, b: &Path) -> io::Result<PathBuf> {
+pub fn get_rel_path(a: &Path, b: &Path) -> FSResult<PathBuf> {
     let rel_path = pathdiff::diff_paths(&a, &b);
     if rel_path.is_none() {
-        Err(to_io_error(&format!(
+        let desc = format!(
             "Could not get relative path from {} to {}",
             &a.to_string_lossy(),
-            &a.to_string_lossy()
-        )))
+            &b.to_string_lossy()
+        );
+        Err(FSError::from_description(&desc))
     } else {
         Ok(rel_path.unwrap())
     }
@@ -64,7 +105,7 @@ fn is_more_recent_than(src: &Entry, dest: &Entry) -> bool {
     src_precise > dest_precise
 }
 
-pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
+pub fn copy_permissions(src: &Entry, dest: &Entry) -> FSResult<()> {
     let src_meta = &src.metadata();
     // is_link should not be none because we should have been able to
     // read its metadata way back in WalkWorker
@@ -79,32 +120,32 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> io::Result<()> {
     let permissions = src_meta.permissions();
     let dest_file = File::open(dest.path());
     if let Err(e) = dest_file {
-        return Err(to_io_error(&format!(
-            "Could not open {} while copying permissions: {}",
-            dest.description(),
-            e
-        )));
+        return Err(FSError::from_io_error(
+            e,
+            &format!(
+                "Could not open {} while copying permissions",
+                dest.description()
+            ),
+        ));
     }
     let dest_file = dest_file.unwrap();
 
     if let Err(e) = dest_file.set_permissions(permissions) {
-        return Err(to_io_error(&format!(
-            "Could set permissions for {}: {}",
-            dest.description(),
-            e
-        )));
+        return Err(FSError::from_io_error(
+            e,
+            &format!("Could set permissions for {}", dest.description()),
+        ));
     }
     Ok(())
 }
 
-fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
+fn copy_link(src: &Entry, dest: &Entry) -> FSResult<SyncOutcome> {
     let src_target = std::fs::read_link(src.path());
     if let Err(e) = src_target {
-        return Err(to_io_error(&format!(
-            "Could not read link {}: {}",
-            src.path().to_string_lossy(),
-            e
-        )));
+        return Err(FSError::from_io_error(
+            e,
+            &format!("Could not read link {}", src.path().to_string_lossy()),
+        ));
     }
     let src_target = src_target.unwrap();
     let is_link = dest.is_link();
@@ -113,21 +154,22 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         Some(true) => {
             let dest_target = std::fs::read_link(dest.path());
             if let Err(e) = dest_target {
-                return Err(to_io_error(&format!(
-                    "Could not read link {}: {}",
-                    dest.path().to_string_lossy(),
-                    e
-                )));
+                return Err(FSError::from_io_error(
+                    e,
+                    &format!("Could not read link {}", dest.path().to_string_lossy()),
+                ));
             }
             let dest_target = dest_target.unwrap();
             if dest_target != src_target {
                 let rm_result = fs::remove_file(dest.path());
                 if let Err(e) = rm_result {
-                    return Err(to_io_error(&format!(
-                        "Could not remove {} while updating link: {}",
-                        dest.description(),
-                        e
-                    )));
+                    return Err(FSError::from_io_error(
+                        e,
+                        &format!(
+                            "Could not remove {} while updating link",
+                            dest.description()
+                        ),
+                    ));
                 }
                 outcome = SyncOutcome::SymlinkUpdated;
             } else {
@@ -136,7 +178,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
         }
         Some(false) => {
             // Never safe to delete
-            return Err(to_io_error(&format!(
+            return Err(FSError::from_description(&format!(
                 "Refusing to replace existing path {:?} by symlink",
                 dest.path()
             )));
@@ -148,12 +190,14 @@ fn copy_link(src: &Entry, dest: &Entry) -> io::Result<(SyncOutcome)> {
     }
     let symlink_result = unix::fs::symlink(&src_target, &dest.path());
     match symlink_result {
-        Err(e) => Err(to_io_error(&format!(
-            "Could not create link from {} to {}: {}",
-            dest.path().to_string_lossy(),
-            &src_target.to_string_lossy(),
-            e
-        ))),
+        Err(e) => Err(FSError::from_io_error(
+            e,
+            &format!(
+                "Could not create link from {} to {}",
+                dest.path().to_string_lossy(),
+                &src_target.to_string_lossy()
+            ),
+        )),
         Ok(_) => Ok(outcome),
     }
 }
@@ -162,15 +206,14 @@ pub fn copy_entry(
     progress_sender: &mpsc::Sender<Progress>,
     src: &Entry,
     dest: &Entry,
-) -> io::Result<SyncOutcome> {
+) -> FSResult<SyncOutcome> {
     let src_path = src.path();
     let src_file = File::open(src_path);
     if let Err(e) = src_file {
-        return Err(to_io_error(&format!(
-            "Could not open {} for reading: {}",
-            src_path.to_string_lossy(),
-            e
-        )));
+        return Err(FSError::from_io_error(
+            e,
+            &format!("Could not open {} for reading", src_path.to_string_lossy()),
+        ));
     }
     let mut src_file = src_file.unwrap();
     let src_meta = src.metadata().expect("src_meta should not be None");
@@ -178,22 +221,20 @@ pub fn copy_entry(
     let dest_path = dest.path();
     let dest_file = File::create(dest_path);
     if let Err(e) = dest_file {
-        return Err(to_io_error(&format!(
-            "Could not open {} for writing: {}",
-            dest_path.to_string_lossy(),
-            e
-        )));
+        return Err(FSError::from_io_error(
+            e,
+            &format!("Could not open {} for writing", dest_path.to_string_lossy()),
+        ));
     }
     let mut dest_file = dest_file.unwrap();
     let mut buffer = vec![0; BUFFER_SIZE];
     loop {
         let num_read = src_file.read(&mut buffer);
         if let Err(e) = num_read {
-            return Err(to_io_error(&format!(
-                "Could not read from {}: {}",
-                src.description(),
-                e
-            )));
+            return Err(FSError::from_io_error(
+                e,
+                &format!("Could not read from {}", src.description()),
+            ));
         }
 
         let num_read = num_read.unwrap();
@@ -202,19 +243,17 @@ pub fn copy_entry(
         }
         let write_result = dest_file.write_all(&buffer[0..num_read]);
         if let Err(e) = write_result {
-            return Err(to_io_error(&format!(
-                "Could not write to {}: {}",
-                dest.description(),
-                e
-            )));
+            return Err(FSError::from_io_error(
+                e,
+                &format!("Could not write to {}", dest.description()),
+            ));
         }
         let flush_result = dest_file.flush();
         if let Err(e) = flush_result {
-            return Err(to_io_error(&format!(
-                "Could not flush {}: {}",
-                dest.description(),
-                e
-            )));
+            return Err(FSError::from_io_error(
+                e,
+                &format!("Could not flush {}", dest.description()),
+            ));
         }
         let progress = Progress::Syncing {
             description: src.description().clone(),
@@ -244,7 +283,7 @@ pub fn sync_entries(
     progress_sender: &mpsc::Sender<Progress>,
     src: &Entry,
     dest: &Entry,
-) -> io::Result<(SyncOutcome)> {
+) -> FSResult<SyncOutcome> {
     let _ = progress_sender.send(Progress::StartSync(src.description().to_string()));
     src.is_link().expect("src.is_link should not be None");
     if src.is_link().unwrap() {
@@ -268,13 +307,13 @@ mod tests {
     use std;
     use std::error::Error;
     use std::fs::File;
-    use std::io;
     use std::io::prelude::*;
     use std::os::unix;
     use std::path::Path;
     use std::path::PathBuf;
 
     use super::Entry;
+    use super::FSResult;
     use super::SyncOutcome;
     use super::copy_link;
 
@@ -301,7 +340,7 @@ mod tests {
         src_link.to_path_buf()
     }
 
-    fn sync_src_link(tmp_path: &Path, src_link: &Path, dest: &str) -> io::Result<(SyncOutcome)> {
+    fn sync_src_link(tmp_path: &Path, src_link: &Path, dest: &str) -> FSResult<SyncOutcome> {
         let src_entry = Entry::new("src", &src_link);
         let dest_path = &tmp_path.join(&dest);
         let dest_entry = Entry::new(&dest, dest_path);

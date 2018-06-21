@@ -1,5 +1,4 @@
 use std::fs;
-use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
@@ -32,7 +31,7 @@ impl SyncWorker {
         }
     }
 
-    pub fn start(self, opts: SyncOptions) -> io::Result<()> {
+    pub fn start(self, opts: SyncOptions) -> fsops::FSResult<()> {
         for entry in self.input.iter() {
             let sync_outcome = self.sync(&entry, opts)?;
             let progress = Progress::DoneSyncing(sync_outcome);
@@ -41,10 +40,10 @@ impl SyncWorker {
         Ok(())
     }
 
-    fn create_missing_dest_dirs(&self, rel_path: &Path) -> io::Result<()> {
+    fn create_missing_dest_dirs(&self, rel_path: &Path) -> fsops::FSResult<()> {
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
-            return Err(fsops::to_io_error(&format!(
+            return Err(fsops::FSError::from_description(&format!(
                 "Could not get parent path of {}",
                 rel_path.to_string_lossy()
             )));
@@ -53,16 +52,15 @@ impl SyncWorker {
         let to_create = self.destination.join(parent_rel_path);
         let create_result = fs::create_dir_all(&to_create);
         if let Err(e) = create_result {
-            return Err(fsops::to_io_error(&format!(
-                "Could not create {}: {}",
-                &to_create.to_string_lossy(),
-                e
-            )));
+            return Err(fsops::FSError::from_io_error(
+                e,
+                &format!("Could not create {}", &to_create.to_string_lossy()),
+            ));
         }
         Ok(())
     }
 
-    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> io::Result<(SyncOutcome)> {
+    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> fsops::FSResult<SyncOutcome> {
         let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
         self.create_missing_dest_dirs(&rel_path)?;
         let desc = rel_path.to_string_lossy();
