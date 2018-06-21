@@ -51,7 +51,14 @@ impl SyncWorker {
         }
         let parent_rel_path = parent_rel_path.unwrap();
         let to_create = self.destination.join(parent_rel_path);
-        fs::create_dir_all(to_create)?;
+        let create_result = fs::create_dir_all(&to_create);
+        if let Err(e) = create_result {
+            return Err(fsops::to_io_error(&format!(
+                "Could not create {}: {}",
+                &to_create.to_string_lossy(),
+                e
+            )));
+        }
         Ok(())
     }
 
