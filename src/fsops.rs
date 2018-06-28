@@ -1,6 +1,7 @@
 extern crate pathdiff;
 
 use std;
+use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io;
@@ -25,9 +26,15 @@ pub struct FSError {
 }
 
 impl std::error::Error for FSError {
+
     fn description(&self) -> &str {
         self.description.as_str()
     }
+
+  fn cause(&self) -> Option<&Error> {
+     self.cause.as_ref().map(|e| e as &Error)
+  }
+
 }
 
 impl std::fmt::Display for FSError {
