@@ -121,7 +121,7 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> FSResult<()> {
     }
     // The only way for src_meta to be None is if src is a broken symlink
     // and we checked that right above:
-    let src_meta = &src_meta.expect(&format!("src_meta was None for {:?}", src));
+    let src_meta = &src_meta.expect(&format!("src_meta was None for {:#?}", src));
     let permissions = src_meta.permissions();
     let dest_file = File::open(dest.path());
     if let Err(e) = dest_file {
