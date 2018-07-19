@@ -1,3 +1,7 @@
+# v0.4.2
+
+* Bug fix: broken symlink in source directory were not re-created in the destination directory
+
 # v0.4.1
 
 * Improve error handling: display more details about the file operation that failed
