@@ -50,9 +50,9 @@ impl WalkWorker {
                             total_size: total_size as usize,
                         });
                         if sent.is_err() {
-                            return Err(
-                                fsops::to_io_error(&"stats output chan is closed".to_string()),
-                            );
+                            return Err(fsops::to_io_error(
+                                &"stats output chan is closed".to_string()
+                            ));
                         }
                     }
                 }
