@@ -115,7 +115,7 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> FSResult<()> {
     // is_link should not be none because we should have been able to
     // read its metadata way back in WalkWorker
     let is_link = src.is_link()
-        .unwrap_or_else(|| panic!("is_link was None for {:?}", src));
+        .unwrap_or_else(|| panic!("is_link was None for {:#?}", src));
     if is_link {
         return Ok(());
     }
