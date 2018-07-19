@@ -26,15 +26,13 @@ pub struct FSError {
 }
 
 impl std::error::Error for FSError {
-
     fn description(&self) -> &str {
         self.description.as_str()
     }
 
-  fn cause(&self) -> Option<&Error> {
-     self.cause.as_ref().map(|e| e as &Error)
-  }
-
+    fn cause(&self) -> Option<&Error> {
+        self.cause.as_ref().map(|e| e as &Error)
+    }
 }
 
 impl std::fmt::Display for FSError {
