@@ -14,11 +14,12 @@ pub struct Entry {
 
 impl Entry {
     pub fn new(description: &str, entry_path: &Path) -> Entry {
-        let metadata = fs::metadata(&entry_path).ok();
+        let mut metadata = fs::metadata(&entry_path).ok();
         let is_link;
         let symlink_metadata = fs::symlink_metadata(&entry_path);
         if let Ok(data) = symlink_metadata {
             is_link = Some(data.file_type().is_symlink());
+            metadata = Some(data);
         } else {
             is_link = None;
         }

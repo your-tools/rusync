@@ -176,11 +176,17 @@ fn dest_read_only() {
 fn broken_link_in_src() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let broken_link = &src_path.join("broken");
-    unix::fs::symlink("no-such", &broken_link).expect("");
+    let src_broken_link = &src_path.join("broken");
+    unix::fs::symlink("no-such", &src_broken_link).expect("");
 
     let syncer = Syncer::new(&src_path, &dest_path);
     let result = syncer.sync();
 
+    let dest_broken_link = &dest_path.join("broken");
+    assert!(!dest_broken_link.exists());
+    assert_eq!(
+        dest_broken_link.read_link().unwrap().to_string_lossy(),
+        "no-such"
+    );
     assert!(result.is_ok());
 }
