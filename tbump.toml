@@ -23,3 +23,8 @@ cmd = "python tools/check-changelog.py {new_version}"
 [[hook]]
 name = "Run tests"
 cmd = "cargo test"
+
+[[hook]]
+name = "Publish to crates.io"
+cmd = "cargo publish"
+after_push = true
