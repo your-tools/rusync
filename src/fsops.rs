@@ -114,7 +114,8 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> FSResult<()> {
     let src_meta = &src.metadata();
     // is_link should not be none because we should have been able to
     // read its metadata way back in WalkWorker
-    let is_link = src.is_link()
+    let is_link = src
+        .is_link()
         .unwrap_or_else(|| panic!("is_link was None for {:#?}", src));
     if is_link {
         return Ok(());
@@ -251,13 +252,6 @@ pub fn copy_entry(
             return Err(FSError::from_io_error(
                 e,
                 &format!("Could not write to {}", dest.description()),
-            ));
-        }
-        let flush_result = dest_file.flush();
-        if let Err(e) = flush_result {
-            return Err(FSError::from_io_error(
-                e,
-                &format!("Could not flush {}", dest.description()),
             ));
         }
         let progress = Progress::Syncing {
