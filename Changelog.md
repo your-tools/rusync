@@ -1,3 +1,7 @@
+# v0.4.3
+
+* Using term_size instead of terminal_size. This fixes compilation on Android.
+
 # v0.4.2
 
 * Bug fix: broken symlink in source directory were not re-created in the destination directory
