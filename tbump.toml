@@ -16,15 +16,14 @@ message_template = "Bump to {new_version}"
 src = "Cargo.toml"
 search = 'version = "{current_version}"'
 
-[[hook]]
+[[before_push]]
 name = "Check changelog"
 cmd = "python tools/check-changelog.py {new_version}"
 
-[[hook]]
+[[before_push]]
 name = "Run tests"
 cmd = "cargo test"
 
-[[hook]]
+[[after_push]]
 name = "Publish to crates.io"
 cmd = "cargo publish"
-after_push = true
