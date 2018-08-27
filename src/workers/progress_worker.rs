@@ -5,16 +5,15 @@ use std::time::Instant;
 
 use progress::Progress;
 use sync::Stats;
-use terminal_size::{terminal_size, Height, Width};
+use term_size;
 
 pub struct ProgressWorker {
     input: Receiver<Progress>,
 }
 
-fn get_terminal_width() -> u16 {
-    let size = terminal_size();
-    if let Some((Width(width), Height(_))) = size {
-        return width;
+fn get_terminal_width() -> usize {
+    if let Some((w, _)) = term_size::dimensions() {
+        return w;
     }
     // We're likely not a tty here, so this is a good enough
     // default:
@@ -49,7 +48,7 @@ fn print_progress(
     let widgets_width = percent_width + index_width + num_files_width + eta_width;
     let num_separators = 5;
     let line_width = get_terminal_width();
-    let file_width = line_width - (widgets_width as u16) - num_separators - 1;
+    let file_width = line_width - widgets_width - num_separators - 1;
     current_file.truncate(file_width as usize);
     let current_file = format!(
         "{filename:<pad$}",

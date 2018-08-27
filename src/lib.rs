@@ -2,7 +2,7 @@
 
 extern crate colored;
 extern crate filetime;
-extern crate terminal_size;
+extern crate term_size;
 
 mod entry;
 mod fsops;
