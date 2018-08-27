@@ -261,8 +261,6 @@ pub fn copy_entry(
         };
         let _ = progress_sender.send(progress);
     }
-    drop(src_file);
-    drop(dest_file);
     Ok(SyncOutcome::FileCopied)
 }
 
