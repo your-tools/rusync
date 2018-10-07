@@ -15,14 +15,22 @@ use workers::WalkWorker;
 
 #[derive(Default)]
 pub struct Stats {
+    /// Number of files in the source
     pub num_files: u64,
+    /// Sum of the sizes of all the files in the source
     pub total_size: usize,
 
+    /// Number of files transfered (should match `num_files`
+    /// if no error)
     pub num_synced: u64,
+    /// Number of files for which the copy was skipped
     pub up_to_date: u64,
+    /// Number of files that were copied
     pub copied: u64,
 
+    /// Number of symlink created in the destination folder
     pub symlink_created: u64,
+    /// Number of symlinks updated in the destination folder
     pub symlink_updated: u64,
 }
 
@@ -41,6 +49,7 @@ impl Stats {
         }
     }
 
+    #[doc(hidden)]
     pub fn add_outcome(&mut self, outcome: &fsops::SyncOutcome) {
         self.num_synced += 1;
         match outcome {

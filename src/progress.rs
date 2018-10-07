@@ -1,14 +1,15 @@
 use fsops::SyncOutcome;
 use sync::Stats;
 
-/// Sent by the SyncWorker
-/// DoneSyncing: when a file has been copied
-/// StartSync: when starting the copy of a new file
-/// Todo: the total number of files and the total size of
-///       data to transfer (this is not constant, and is sent by
-///       the walk_worker)
-/// Syncing: during progress of *one* file: the total size of the file
-///          and the size of the transfered data
+// Sent by the SyncWorker
+// DoneSyncing: when a file has been copied
+// StartSync: when starting the copy of a new file
+// Todo: the total number of files and the total size of
+//       data to transfer (this is not constant, and is sent by
+//       the walk_worker)
+// Syncing: during progress of *one* file: the total size of the file
+//          and the size of the transfered data
+#[doc(hidden)]
 pub enum Progress {
     DoneSyncing(SyncOutcome),
     StartSync(String),
@@ -23,25 +24,37 @@ pub enum Progress {
     },
 }
 
-/// Sent by the ProgressWorker, which compiles the info from
-/// the WalkWorker and the SyncWorker, and computes the ETA (estimated
-/// number of seconds left for the transfer to finish)
-/// Used by the ProgressInfo below
 pub struct DetailedProgress {
-    pub file_done: usize,
-    pub file_size: usize,
-    pub total_done: usize,
-    pub total_size: usize,
-    pub index: usize,
-    pub num_files: usize,
+    /// Name of the file being transferred
     pub current_file: String,
+    /// Number of bytes transfered for the current file
+    pub file_done: usize,
+    /// Size of the current file (in bytes)
+    pub file_size: usize,
+    /// Number of bytes transfered since the start
+    pub total_done: usize,
+    /// Estimated total size of the transfer (this may change during transfer)
+    pub total_size: usize,
+    /// Index of the current file in the list of all files to transfer
+    pub index: usize,
+    /// Total number of files to transfer
+    pub num_files: usize,
+    /// Estimated time remaining for the transfer, in seconds
     pub eta: usize,
 }
 
+/// Trait for implementing rusync progress details
 pub trait ProgressInfo {
+    /// A new transfer begin from the `source` directory to the `destination`
+    /// directory
     fn start(&self, source: &str, destination: &str);
+    /// A new file named `name` is being transfered
     fn new_file(&self, name: &str);
+    /// The file transfer is done
     fn done_syncing(&self);
+    /// Callback for the detailed progress
     fn progress(&self, progress: &DetailedProgress);
+    /// The transfer between `source` and `destination` is done. Details
+    /// of the transfer in the Stats struct
     fn end(&self, stats: &Stats);
 }
