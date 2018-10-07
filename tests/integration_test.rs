@@ -16,7 +16,6 @@ use filetime::FileTime;
 use tempdir::TempDir;
 
 use rusync::progress::{DetailedProgress, ProgressInfo};
-use rusync::sync::Syncer;
 
 fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
@@ -79,9 +78,10 @@ impl ProgressInfo for DummyProgressInfo {
     fn end(&self, _stats: &rusync::sync::Stats) {}
 }
 
-fn new_test_syncer(src: &Path, dest: &Path) -> Syncer {
+fn new_test_syncer(src: &Path, dest: &Path) -> rusync::Syncer {
     let dummy_progress_info = DummyProgressInfo {};
-    Syncer::new(&src, &dest, Box::new(dummy_progress_info))
+    let options = rusync::SyncOptions::new();
+    rusync::Syncer::new(&src, &dest, options, Box::new(dummy_progress_info))
 }
 
 #[test]
@@ -137,8 +137,14 @@ fn preserve_permissions() {
 fn do_not_preserve_permissions() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let mut syncer = new_test_syncer(&src_path, &dest_path);
-    syncer.preserve_permissions(false);
+    let mut options = rusync::SyncOptions::new();
+    options.preserve_permissions = false;
+    let syncer = rusync::Syncer::new(
+        &src_path,
+        &dest_path,
+        options,
+        Box::new(DummyProgressInfo {}),
+    );
     syncer.sync().expect("");
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");

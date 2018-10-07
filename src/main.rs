@@ -4,6 +4,7 @@ extern crate colored;
 extern crate rusync;
 
 use rusync::console_info::ConsoleProgressInfo;
+use rusync::sync::SyncOptions;
 use rusync::Syncer;
 use std::path::PathBuf;
 use std::process;
@@ -36,11 +37,11 @@ fn main() {
         process::exit(1);
     }
     let destination = &opt.destination;
-    let preserve_permissions = opt.preserve_permissions();
 
     let console_info = ConsoleProgressInfo {};
-    let mut syncer = Syncer::new(&source, &destination, Box::new(console_info));
-    syncer.preserve_permissions(preserve_permissions);
+    let mut options = SyncOptions::new();
+    options.preserve_permissions = opt.preserve_permissions();
+    let syncer = Syncer::new(&source, &destination, options, Box::new(console_info));
     let stats = syncer.sync();
     match stats {
         Err(err) => {
