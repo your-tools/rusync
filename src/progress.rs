@@ -47,14 +47,23 @@ pub struct DetailedProgress {
 pub trait ProgressInfo {
     /// A new transfer begin from the `source` directory to the `destination`
     /// directory
-    fn start(&self, source: &str, destination: &str);
+    #[allow(unused_variables)]
+    fn start(&self, source: &str, destination: &str) {}
+
     /// A new file named `name` is being transfered
-    fn new_file(&self, name: &str);
+    #[allow(unused_variables)]
+    fn new_file(&self, name: &str) {}
+
     /// The file transfer is done
-    fn done_syncing(&self);
+    #[allow(unused_variables)]
+    fn done_syncing(&self) {}
+
     /// Callback for the detailed progress
-    fn progress(&self, progress: &DetailedProgress);
+    #[allow(unused_variables)]
+    fn progress(&self, progress: &DetailedProgress) {}
+
     /// The transfer between `source` and `destination` is done. Details
     /// of the transfer in the Stats struct
-    fn end(&self, stats: &Stats);
+    #[allow(unused_variables)]
+    fn end(&self, stats: &Stats) {}
 }

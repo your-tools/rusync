@@ -15,7 +15,7 @@ use std::process::Command;
 use filetime::FileTime;
 use tempdir::TempDir;
 
-use rusync::progress::{DetailedProgress, ProgressInfo};
+use rusync::progress::ProgressInfo;
 
 fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
@@ -70,13 +70,7 @@ fn make_recent(path: &Path) -> io::Result<()> {
 }
 
 struct DummyProgressInfo {}
-impl ProgressInfo for DummyProgressInfo {
-    fn start(&self, _source: &str, _destination: &str) {}
-    fn new_file(&self, _name: &str) {}
-    fn progress(&self, _progress: &DetailedProgress) {}
-    fn done_syncing(&self) {}
-    fn end(&self, _stats: &rusync::sync::Stats) {}
-}
+impl ProgressInfo for DummyProgressInfo {}
 
 fn new_test_syncer(src: &Path, dest: &Path) -> rusync::Syncer {
     let dummy_progress_info = DummyProgressInfo {};
