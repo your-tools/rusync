@@ -10,7 +10,7 @@ use sync::Stats;
 // Syncing: during progress of *one* file: the total size of the file
 //          and the size of the transfered data
 #[doc(hidden)]
-pub enum Progress {
+pub enum ProgressMessage {
     DoneSyncing(SyncOutcome),
     StartSync(String),
     Todo {
@@ -24,7 +24,7 @@ pub enum Progress {
     },
 }
 
-pub struct DetailedProgress {
+pub struct Progress {
     /// Name of the file being transferred
     pub current_file: String,
     /// Number of bytes transfered for the current file
@@ -60,7 +60,7 @@ pub trait ProgressInfo {
 
     /// Callback for the detailed progress
     #[allow(unused_variables)]
-    fn progress(&self, progress: &DetailedProgress) {}
+    fn progress(&self, progress: &Progress) {}
 
     /// The transfer between `source` and `destination` is done. Details
     /// of the transfer in the Stats struct

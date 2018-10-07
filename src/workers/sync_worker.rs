@@ -6,12 +6,12 @@ use std::sync::mpsc::{Receiver, Sender};
 use entry::Entry;
 use fsops;
 use fsops::SyncOutcome;
-use progress::Progress;
+use progress::ProgressMessage;
 use sync::SyncOptions;
 
 pub struct SyncWorker {
     input: Receiver<Entry>,
-    output: Sender<Progress>,
+    output: Sender<ProgressMessage>,
     source: PathBuf,
     destination: PathBuf,
 }
@@ -21,7 +21,7 @@ impl SyncWorker {
         source: &Path,
         destination: &Path,
         input: Receiver<Entry>,
-        output: Sender<Progress>,
+        output: Sender<ProgressMessage>,
     ) -> SyncWorker {
         SyncWorker {
             source: source.to_path_buf(),
@@ -34,7 +34,7 @@ impl SyncWorker {
     pub fn start(self, opts: SyncOptions) -> fsops::FSResult<()> {
         for entry in self.input.iter() {
             let sync_outcome = self.sync(&entry, opts)?;
-            let progress = Progress::DoneSyncing(sync_outcome);
+            let progress = ProgressMessage::DoneSyncing(sync_outcome);
             self.output.send(progress).unwrap();
         }
         Ok(())

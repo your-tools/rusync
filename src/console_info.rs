@@ -3,7 +3,7 @@
 //! Display transfer progress to the command line
 
 use colored::Colorize;
-use progress::{DetailedProgress, ProgressInfo};
+use progress::{Progress, ProgressInfo};
 use std::io;
 use std::io::Write;
 use sync;
@@ -33,7 +33,7 @@ impl ProgressInfo for ConsoleProgressInfo {
 
     fn new_file(&self, _name: &str) {}
 
-    fn progress(&self, progress: &DetailedProgress) {
+    fn progress(&self, progress: &Progress) {
         let eta_str = human_seconds(progress.eta);
         let percent_width = 3;
         let eta_width = eta_str.len();
