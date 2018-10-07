@@ -67,7 +67,7 @@ pub struct SyncOptions {
 }
 
 impl SyncOptions {
-    fn new() -> SyncOptions {
+    pub fn new() -> SyncOptions {
         SyncOptions {
             preserve_permissions: true,
         }
@@ -85,18 +85,15 @@ impl Syncer {
     pub fn new(
         source: &Path,
         destination: &Path,
+        options: SyncOptions,
         progress_info: Box<ProgressInfo + Send>,
     ) -> Syncer {
         Syncer {
             source: source.to_path_buf(),
             destination: destination.to_path_buf(),
-            options: SyncOptions::new(),
             progress_info,
+            options,
         }
-    }
-
-    pub fn preserve_permissions(&mut self, preserve_permissions: bool) {
-        self.options.preserve_permissions = preserve_permissions;
     }
 
     pub fn sync(self) -> Result<Stats, String> {

@@ -17,4 +17,5 @@ pub mod progress;
 pub mod sync;
 mod workers;
 pub use sync::Syncer;
+pub use sync::SyncOptions;
 pub use sync::Stats;
