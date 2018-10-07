@@ -1,14 +1,6 @@
 use fsops::SyncOutcome;
 use sync::Stats;
 
-// Sent by the SyncWorker
-// DoneSyncing: when a file has been copied
-// StartSync: when starting the copy of a new file
-// Todo: the total number of files and the total size of
-//       data to transfer (this is not constant, and is sent by
-//       the walk_worker)
-// Syncing: during progress of *one* file: the total size of the file
-//          and the size of the transfered data
 #[doc(hidden)]
 pub enum ProgressMessage {
     DoneSyncing(SyncOutcome),
