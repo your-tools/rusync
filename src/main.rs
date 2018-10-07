@@ -3,8 +3,7 @@ extern crate structopt;
 extern crate colored;
 extern crate rusync;
 
-use colored::Colorize;
-use rusync::Stats;
+use rusync::console_info::ConsoleProgressInfo;
 use rusync::Syncer;
 use std::path::PathBuf;
 use std::process;
@@ -29,19 +28,6 @@ impl Opt {
     }
 }
 
-fn print_stats(stats: &Stats) {
-    println!(
-        "{} Synced {} files ({} up to date)",
-        " ✓".color("green"),
-        stats.num_synced,
-        stats.up_to_date
-    );
-    println!(
-        "{} files copied, {} symlinks created, {} symlinks updated",
-        stats.copied, stats.symlink_created, stats.symlink_updated
-    );
-}
-
 fn main() {
     let opt = Opt::from_args();
     let source = &opt.source;
@@ -51,14 +37,9 @@ fn main() {
     }
     let destination = &opt.destination;
     let preserve_permissions = opt.preserve_permissions();
-    println!(
-        "{} Syncing from {} to {} …",
-        "::".color("blue"),
-        source.to_string_lossy().bold(),
-        destination.to_string_lossy().bold()
-    );
 
-    let mut syncer = Syncer::new(&source, &destination);
+    let console_info = ConsoleProgressInfo {};
+    let mut syncer = Syncer::new(&source, &destination, Box::new(console_info));
     syncer.preserve_permissions(preserve_permissions);
     let stats = syncer.sync();
     match stats {
@@ -66,8 +47,7 @@ fn main() {
             eprintln!("{}", err);
             process::exit(1);
         }
-        Ok(stats) => {
-            print_stats(&stats);
+        Ok(_) => {
             process::exit(0);
         }
     }
