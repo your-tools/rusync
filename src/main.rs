@@ -38,7 +38,7 @@ fn main() {
     }
     let destination = &opt.destination;
 
-    let console_info = ConsoleProgressInfo {};
+    let console_info = ConsoleProgressInfo::new();
     let mut options = SyncOptions::new();
     options.preserve_permissions = opt.preserve_permissions();
     let syncer = Syncer::new(&source, &destination, options, Box::new(console_info));

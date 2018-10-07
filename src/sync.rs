@@ -63,6 +63,7 @@ impl Stats {
 
 #[derive(Copy, Clone)]
 pub struct SyncOptions {
+    /// Wether to preserve permissions of the source file after the destination is written.
     pub preserve_permissions: bool,
 }
 

@@ -1,2 +1,5 @@
 target/
 test/
+
+# created when runnig doc tests
+dest/

@@ -11,6 +11,12 @@ use term_size;
 
 pub struct ConsoleProgressInfo {}
 
+impl ConsoleProgressInfo {
+    pub fn new() -> ConsoleProgressInfo {
+        ConsoleProgressInfo {}
+    }
+}
+
 impl ProgressInfo for ConsoleProgressInfo {
     fn done_syncing(&self) {
         erase_line();
