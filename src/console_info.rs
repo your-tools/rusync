@@ -1,9 +1,14 @@
+//! console_info
+//!
+//! Display transfer progress to the command line
+
 use colored::Colorize;
 use progress::{DetailedProgress, ProgressInfo};
 use std::io;
 use std::io::Write;
 use sync;
 use term_size;
+
 pub struct ConsoleProgressInfo {}
 
 impl ProgressInfo for ConsoleProgressInfo {
