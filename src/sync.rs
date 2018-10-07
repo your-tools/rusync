@@ -8,7 +8,7 @@ use std::thread;
 use entry::Entry;
 use fsops;
 use fsops::SyncOutcome::*;
-use progress::Progress;
+use progress::{Progress, ProgressInfo};
 use workers::ProgressWorker;
 use workers::SyncWorker;
 use workers::WalkWorker;
@@ -69,14 +69,20 @@ pub struct Syncer {
     source: PathBuf,
     destination: PathBuf,
     options: SyncOptions,
+    progress_info: Box<ProgressInfo + Send>,
 }
 
 impl Syncer {
-    pub fn new(source: &Path, destination: &Path) -> Syncer {
+    pub fn new(
+        source: &Path,
+        destination: &Path,
+        progress_info: Box<ProgressInfo + Send>,
+    ) -> Syncer {
         Syncer {
             source: source.to_path_buf(),
             destination: destination.to_path_buf(),
             options: SyncOptions::new(),
+            progress_info,
         }
     }
 
@@ -96,10 +102,11 @@ impl Syncer {
             syncer_input,
             progress_output,
         );
-        let progress_worker = ProgressWorker::new(progress_input);
+        let progress_worker = ProgressWorker::new(progress_input, self.progress_info);
+        let options = self.options.clone();
 
         let walker_thread = thread::spawn(move || walk_worker.start());
-        let syncer_thread = thread::spawn(move || sync_worker.start(self.options));
+        let syncer_thread = thread::spawn(move || sync_worker.start(options));
         let progress_thread = thread::spawn(|| progress_worker.start());
 
         let walker_outcome = walker_thread.join();

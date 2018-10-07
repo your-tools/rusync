@@ -15,6 +15,7 @@ use std::process::Command;
 use filetime::FileTime;
 use tempdir::TempDir;
 
+use rusync::progress::{DetailedProgress, ProgressInfo};
 use rusync::sync::Syncer;
 
 fn assert_same_contents(a: &Path, b: &Path) {
@@ -69,11 +70,25 @@ fn make_recent(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
+struct DummyProgressInfo {}
+impl ProgressInfo for DummyProgressInfo {
+    fn start(&self, _source: &str, _destination: &str) {}
+    fn new_file(&self, _name: &str) {}
+    fn progress(&self, _progress: &DetailedProgress) {}
+    fn done_syncing(&self) {}
+    fn end(&self, _stats: &rusync::sync::Stats) {}
+}
+
+fn new_test_syncer(src: &Path, dest: &Path) -> Syncer {
+    let dummy_progress_info = DummyProgressInfo {};
+    Syncer::new(&src, &dest, Box::new(dummy_progress_info))
+}
+
 #[test]
 fn fresh_copy() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
     let outcome = syncer.sync();
     assert!(
         outcome.is_ok(),
@@ -94,14 +109,14 @@ fn fresh_copy() {
 fn skip_up_to_date_files() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
 
     let stats = syncer.sync().unwrap();
     assert_eq!(stats.up_to_date, 0);
 
     let src_top_txt = src_path.join("top.txt");
     make_recent(&src_top_txt).expect("could not make top.txt recent");
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
 
     let stats = syncer.sync().expect("");
     assert_eq!(stats.copied, 1);
@@ -111,7 +126,7 @@ fn skip_up_to_date_files() {
 fn preserve_permissions() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
     syncer.sync().unwrap();
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
@@ -122,7 +137,7 @@ fn preserve_permissions() {
 fn do_not_preserve_permissions() {
     let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let mut syncer = Syncer::new(&src_path, &dest_path);
+    let mut syncer = new_test_syncer(&src_path, &dest_path);
     syncer.preserve_permissions(false);
     syncer.sync().expect("");
 
@@ -137,13 +152,13 @@ fn rewrite_partially_written_files() {
     let src_top = src_path.join("top.txt");
     let expected = fs::read_to_string(&src_top).expect("");
 
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
     syncer.sync().expect("");
     let dest_top = dest_path.join("top.txt");
     // Corrupt the dest/top.txt
     fs::write(&dest_top, "this is").expect("");
 
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
     syncer.sync().expect("");
     let actual = fs::read_to_string(&dest_top).expect("");
     assert_eq!(actual, expected);
@@ -166,7 +181,7 @@ fn dest_read_only() {
     let src_top = src_path.join("top.txt");
     make_recent(&src_top).expect("could not make top.txt recent");
 
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
     let result = syncer.sync();
 
     assert!(result.is_err());
@@ -179,7 +194,7 @@ fn broken_link_in_src() {
     let src_broken_link = &src_path.join("broken");
     unix::fs::symlink("no-such", &src_broken_link).expect("");
 
-    let syncer = Syncer::new(&src_path, &dest_path);
+    let syncer = new_test_syncer(&src_path, &dest_path);
     let result = syncer.sync();
 
     let dest_broken_link = &dest_path.join("broken");
