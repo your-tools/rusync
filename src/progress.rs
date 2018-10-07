@@ -45,7 +45,7 @@ pub struct Progress {
 
 /// Trait for implementing rusync progress details
 pub trait ProgressInfo {
-    /// A new transfer begin from the `source` directory to the `destination`
+    /// A new transfer has begun from the `source` directory to the `destination`
     /// directory
     #[allow(unused_variables)]
     fn start(&self, source: &str, destination: &str) {}
