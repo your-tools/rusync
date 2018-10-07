@@ -15,7 +15,7 @@ use std::sync::mpsc;
 use filetime::FileTime;
 
 use entry::Entry;
-use progress::Progress;
+use progress::ProgressMessage;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
@@ -209,7 +209,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> FSResult<SyncOutcome> {
 }
 
 pub fn copy_entry(
-    progress_sender: &mpsc::Sender<Progress>,
+    progress_sender: &mpsc::Sender<ProgressMessage>,
     src: &Entry,
     dest: &Entry,
 ) -> FSResult<SyncOutcome> {
@@ -254,7 +254,7 @@ pub fn copy_entry(
                 &format!("Could not write to {}", dest.description()),
             ));
         }
-        let progress = Progress::Syncing {
+        let progress = ProgressMessage::Syncing {
             description: src.description().clone(),
             size: src_size as usize,
             done: num_read,
@@ -277,11 +277,11 @@ fn has_different_size(src: &Entry, dest: &Entry) -> bool {
 }
 
 pub fn sync_entries(
-    progress_sender: &mpsc::Sender<Progress>,
+    progress_sender: &mpsc::Sender<ProgressMessage>,
     src: &Entry,
     dest: &Entry,
 ) -> FSResult<SyncOutcome> {
-    let _ = progress_sender.send(Progress::StartSync(src.description().to_string()));
+    let _ = progress_sender.send(ProgressMessage::StartSync(src.description().to_string()));
     src.is_link().expect("src.is_link should not be None");
     if src.is_link().unwrap() {
         return copy_link(&src, &dest);

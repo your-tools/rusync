@@ -8,7 +8,7 @@ use std::thread;
 use entry::Entry;
 use fsops;
 use fsops::SyncOutcome::*;
-use progress::{Progress, ProgressInfo};
+use progress::{ProgressInfo, ProgressMessage};
 use workers::ProgressWorker;
 use workers::SyncWorker;
 use workers::WalkWorker;
@@ -99,7 +99,7 @@ impl Syncer {
 
     pub fn sync(self) -> Result<Stats, String> {
         let (walker_entry_output, syncer_input) = channel::<Entry>();
-        let (walker_stats_output, progress_input) = channel::<Progress>();
+        let (walker_stats_output, progress_input) = channel::<ProgressMessage>();
         let progress_output = walker_stats_output.clone();
 
         let walk_worker = WalkWorker::new(&self.source, walker_entry_output, walker_stats_output);

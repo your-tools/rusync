@@ -1,17 +1,17 @@
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
-use progress::{DetailedProgress, Progress, ProgressInfo};
+use progress::{Progress, ProgressInfo, ProgressMessage};
 use sync::Stats;
 
 pub struct ProgressWorker {
-    input: Receiver<Progress>,
+    input: Receiver<ProgressMessage>,
     progress_info: Box<ProgressInfo + Send>,
 }
 
 impl ProgressWorker {
     pub fn new(
-        input: Receiver<Progress>,
+        input: Receiver<ProgressMessage>,
         progress_info: Box<ProgressInfo + Send>,
     ) -> ProgressWorker {
         ProgressWorker {
@@ -29,29 +29,29 @@ impl ProgressWorker {
         let now = Instant::now();
         for progress in self.input.iter() {
             match progress {
-                Progress::Todo {
+                ProgressMessage::Todo {
                     num_files,
                     total_size,
                 } => {
                     stats.num_files = num_files;
                     stats.total_size = total_size;
                 }
-                Progress::StartSync(x) => {
+                ProgressMessage::StartSync(x) => {
                     self.progress_info.new_file(&x);
                     current_file = x;
                     index += 1;
                 }
-                Progress::DoneSyncing(x) => {
+                ProgressMessage::DoneSyncing(x) => {
                     self.progress_info.done_syncing();
                     stats.add_outcome(&x);
                     file_done = 0;
                 }
-                Progress::Syncing { done, size, .. } => {
+                ProgressMessage::Syncing { done, size, .. } => {
                     file_done += done;
                     total_done += done;
                     let elapsed = now.elapsed().as_secs() as usize;
                     let eta = ((elapsed * stats.total_size) / total_done) - elapsed;
-                    let detailed_progress = DetailedProgress {
+                    let detailed_progress = Progress {
                         file_done,
                         file_size: size,
                         total_done,

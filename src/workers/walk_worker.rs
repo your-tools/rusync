@@ -8,11 +8,11 @@ use std::sync::mpsc::Sender;
 
 use entry::Entry;
 use fsops;
-use progress::Progress;
+use progress::ProgressMessage;
 
 pub struct WalkWorker {
     entry_output: Sender<Entry>,
-    progress_output: Sender<Progress>,
+    progress_output: Sender<ProgressMessage>,
     source: PathBuf,
 }
 
@@ -20,7 +20,7 @@ impl WalkWorker {
     pub fn new(
         source: &Path,
         entry_output: Sender<Entry>,
-        progress_output: Sender<Progress>,
+        progress_output: Sender<ProgressMessage>,
     ) -> WalkWorker {
         WalkWorker {
             entry_output,
@@ -45,13 +45,13 @@ impl WalkWorker {
                     if let Some(meta) = meta {
                         num_files += 1;
                         total_size += meta.len();
-                        let sent = self.progress_output.send(Progress::Todo {
+                        let sent = self.progress_output.send(ProgressMessage::Todo {
                             num_files,
                             total_size: total_size as usize,
                         });
                         if sent.is_err() {
                             return Err(fsops::to_io_error(
-                                &"stats output chan is closed".to_string()
+                                &"stats output chan is closed".to_string(),
                             ));
                         }
                     }
