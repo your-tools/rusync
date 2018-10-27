@@ -1,7 +1,6 @@
-#[macro_use]
-extern crate structopt;
 extern crate colored;
 extern crate rusync;
+extern crate structopt;
 
 use rusync::console_info::ConsoleProgressInfo;
 use rusync::sync::SyncOptions;
