@@ -1,3 +1,7 @@
+# v0.5.0
+
+* rusync is now usable as a library! Thanks @mmstick for the suggestion. See [documentation](https://docs.rs/rusync) for details.
+
 # v0.4.3
 
 * Using term_size instead of terminal_size. This fixes compilation on Android.
