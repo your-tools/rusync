@@ -139,7 +139,7 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> FSResult<()> {
     if let Err(e) = dest_file.set_permissions(permissions) {
         return Err(FSError::from_io_error(
             e,
-            &format!("Could set permissions for {}", dest.description()),
+            &format!("Could not set permissions for {}", dest.description()),
         ));
     }
     Ok(())
