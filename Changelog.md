@@ -1,3 +1,7 @@
+# v0.5.1
+
+* Fix misleading error message. Patch by @danieldulaney.
+
 # v0.5.0
 
 * rusync is now usable as a library! Thanks @mmstick for the suggestion. See [documentation](https://docs.rs/rusync) for details.
