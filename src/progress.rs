@@ -1,5 +1,5 @@
-use fsops::SyncOutcome;
-use sync::Stats;
+use crate::fsops::SyncOutcome;
+use crate::sync::Stats;
 
 #[doc(hidden)]
 pub enum ProgressMessage {

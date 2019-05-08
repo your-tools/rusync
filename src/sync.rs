@@ -5,13 +5,13 @@ use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::thread;
 
-use entry::Entry;
-use fsops;
-use fsops::SyncOutcome::*;
-use progress::{ProgressInfo, ProgressMessage};
-use workers::ProgressWorker;
-use workers::SyncWorker;
-use workers::WalkWorker;
+use crate::entry::Entry;
+use crate::fsops;
+use crate::fsops::SyncOutcome::*;
+use crate::progress::{ProgressInfo, ProgressMessage};
+use crate::workers::ProgressWorker;
+use crate::workers::SyncWorker;
+use crate::workers::WalkWorker;
 
 #[derive(Default)]
 pub struct Stats {

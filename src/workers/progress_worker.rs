@@ -1,8 +1,8 @@
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
-use progress::{Progress, ProgressInfo, ProgressMessage};
-use sync::Stats;
+use crate::progress::{Progress, ProgressInfo, ProgressMessage};
+use crate::sync::Stats;
 
 pub struct ProgressWorker {
     input: Receiver<ProgressMessage>,

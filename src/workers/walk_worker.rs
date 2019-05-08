@@ -6,9 +6,9 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
-use entry::Entry;
-use fsops;
-use progress::ProgressMessage;
+use crate::entry::Entry;
+use crate::fsops;
+use crate::progress::ProgressMessage;
 
 pub struct WalkWorker {
     entry_output: Sender<Entry>,

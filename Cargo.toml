@@ -12,6 +12,8 @@ categories = ["command-line-utilities"]
 
 repository = "https://github.com/dmerejkowsky/rusync"
 
+edition = "2018"
+
 [dependencies]
 pathdiff = "0.1.0"
 colored = "1.6"

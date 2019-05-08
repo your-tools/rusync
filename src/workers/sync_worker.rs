@@ -3,11 +3,11 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 
-use entry::Entry;
-use fsops;
-use fsops::SyncOutcome;
-use progress::ProgressMessage;
-use sync::SyncOptions;
+use crate::entry::Entry;
+use crate::fsops;
+use crate::fsops::SyncOutcome;
+use crate::progress::ProgressMessage;
+use crate::sync::SyncOptions;
 
 pub struct SyncWorker {
     input: Receiver<Entry>,

@@ -14,8 +14,8 @@ use std::sync::mpsc;
 
 use filetime::FileTime;
 
-use entry::Entry;
-use progress::ProgressMessage;
+use crate::entry::Entry;
+use crate::progress::ProgressMessage;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
