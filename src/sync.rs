@@ -6,6 +6,7 @@ use std::sync::mpsc::channel;
 use std::thread;
 
 use crate::entry::Entry;
+use crate::error::Error;
 use crate::fsops;
 use crate::fsops::SyncOutcome::*;
 use crate::progress::{ProgressInfo, ProgressMessage};
@@ -97,7 +98,7 @@ impl Syncer {
         }
     }
 
-    pub fn sync(self) -> Result<Stats, String> {
+    pub fn sync(self) -> Result<Stats, Error> {
         let (walker_entry_output, syncer_input) = channel::<Entry>();
         let (walker_stats_output, progress_input) = channel::<ProgressMessage>();
         let progress_output = walker_stats_output.clone();
@@ -116,25 +117,19 @@ impl Syncer {
         let syncer_thread = thread::spawn(move || sync_worker.start(options));
         let progress_thread = thread::spawn(|| progress_worker.start());
 
-        let walker_outcome = walker_thread.join();
-        let syncer_outcome = syncer_thread.join();
-        let progress_outcome = progress_thread.join();
+        walker_thread
+            .join()
+            .map_err(|e| Error::new(&format!("Could not join walker thread: {:?}", e)))?;
 
-        if walker_outcome.is_err() {
-            return Err("Could not join walker thread".to_string());
-        }
+        let syncer_result = syncer_thread
+            .join()
+            .map_err(|e| Error::new(&format!("Could not join syncer thread: {:?}", e)))?;
+        let progress_result = progress_thread
+            .join()
+            .map_err(|e| Error::new(&format!("Could not join progress thread: {:?}", e)));
 
-        if syncer_outcome.is_err() {
-            return Err("Could not join syncer thread".to_string());
-        }
-        let syncer_result = syncer_outcome.unwrap();
-        if syncer_result.is_err() {
-            return Err(format!("{}", syncer_result.err().unwrap()));
-        }
+        syncer_result?;
 
-        if progress_outcome.is_err() {
-            return Err("Could not join progress thread".to_string());
-        }
-        Ok(progress_outcome.unwrap())
+        progress_result
     }
 }

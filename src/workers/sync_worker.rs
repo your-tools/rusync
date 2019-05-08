@@ -36,20 +36,17 @@ impl SyncWorker {
         for entry in self.input.iter() {
             let sync_outcome = self.sync(&entry, opts)?;
             let progress = ProgressMessage::DoneSyncing(sync_outcome);
-            self.output.send(progress).unwrap();
+            self.output
+                .send(progress)
+                .map_err(|e| Error::new(&format!("Could not send: {}", e)))?;
         }
         Ok(())
     }
 
     fn create_missing_dest_dirs(&self, rel_path: &Path) -> Result<(), Error> {
-        let parent_rel_path = rel_path.parent();
-        if parent_rel_path.is_none() {
-            return Err(Error::new(&format!(
-                "Could not get parent path of {:?}",
-                rel_path
-            )));
-        }
-        let parent_rel_path = parent_rel_path.unwrap();
+        let parent_rel_path = rel_path
+            .parent()
+            .ok_or_else(|| Error::new(&format!("Could not get parent path of {:?}", rel_path)))?;
         let to_create = self.destination.join(parent_rel_path);
         let create_result = fs::create_dir_all(&to_create);
         if let Err(e) = create_result {

@@ -27,17 +27,8 @@ pub enum SyncOutcome {
 }
 
 pub fn get_rel_path(a: &Path, b: &Path) -> Result<PathBuf, Error> {
-    let rel_path = pathdiff::diff_paths(&a, &b);
-    if rel_path.is_none() {
-        let desc = format!(
-            "Could not get relative path from {} to {}",
-            &a.to_string_lossy(),
-            &b.to_string_lossy()
-        );
-        Err(Error::new(&desc))
-    } else {
-        Ok(rel_path.unwrap())
-    }
+    let rel_path = pathdiff::diff_paths(&a, &b).ok_or_else(|| Error::new(""))?;
+    Ok(rel_path)
 }
 
 fn is_more_recent_than(src: &Entry, dest: &Entry) -> bool {
@@ -75,58 +66,45 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> Result<(), Error> {
     // and we checked that right above:
     let src_meta = &src_meta.expect(&format!("src_meta was None for {:#?}", src));
     let permissions = src_meta.permissions();
-    let dest_file = File::open(dest.path());
-    if let Err(e) = dest_file {
-        return Err(Error::new(&format!(
+    let dest_file = File::open(dest.path()).map_err(|e| {
+        Error::new(&format!(
             "could not open {} while copying permissions: {}",
             dest.description(),
             e
-        )));
-    }
-    let dest_file = dest_file.unwrap();
-
-    if let Err(e) = dest_file.set_permissions(permissions) {
-        return Err(Error::new(&format!(
+        ))
+    })?;
+    dest_file.set_permissions(permissions).map_err(|e| {
+        Error::new(&format!(
             "Could not set permissions for {}: {}",
             dest.description(),
             e
-        )));
-    }
+        ))
+    })?;
     Ok(())
 }
 
 fn copy_link(src: &Entry, dest: &Entry) -> Result<SyncOutcome, Error> {
-    let src_target = std::fs::read_link(src.path());
-    if let Err(e) = src_target {
-        return Err(Error::new(&format!(
-            "Could not read link {}: {}",
-            src.description(),
-            e
-        )));
-    }
-    let src_target = src_target.unwrap();
+    let src_target = std::fs::read_link(src.path())
+        .map_err(|e| Error::new(&format!("Could not read link {}: {}", src.description(), e)))?;
     let is_link = dest.is_link();
     let outcome;
     match is_link {
         Some(true) => {
-            let dest_target = std::fs::read_link(dest.path());
-            if let Err(e) = dest_target {
-                return Err(Error::new(&format!(
+            let dest_target = std::fs::read_link(dest.path()).map_err(|e| {
+                Error::new(&format!(
                     "Could not read link {}: {}",
                     dest.description(),
                     e
-                )));
-            }
-            let dest_target = dest_target.unwrap();
+                ))
+            })?;
             if dest_target != src_target {
-                let rm_result = fs::remove_file(dest.path());
-                if let Err(e) = rm_result {
-                    return Err(Error::new(&format!(
+                fs::remove_file(dest.path()).map_err(|e| {
+                    Error::new(&format!(
                         "Could not remove {} while updating link: {}",
                         dest.description(),
                         e
-                    )));
-                }
+                    ))
+                })?;
                 outcome = SyncOutcome::SymlinkUpdated;
             } else {
                 return Ok(SyncOutcome::UpToDate);
@@ -162,50 +140,34 @@ pub fn copy_entry(
     dest: &Entry,
 ) -> Result<SyncOutcome, Error> {
     let src_path = src.path();
-    let src_file = File::open(src_path);
-    if let Err(e) = src_file {
-        return Err(Error::new(&format!(
+    let mut src_file = File::open(src_path).map_err(|e| {
+        Error::new(&format!(
             "Could not open {} for reading: {}",
             src.description(),
             e
-        )));
-    }
-    let mut src_file = src_file.unwrap();
+        ))
+    })?;
     let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
     let dest_path = dest.path();
-    let dest_file = File::create(dest_path);
-    if let Err(e) = dest_file {
-        return Err(Error::new(&format!(
+    let mut dest_file = File::create(dest_path).map_err(|e| {
+        Error::new(&format!(
             "Could not open {} for writing: {}",
             dest.description(),
             e
-        )));
-    }
-    let mut dest_file = dest_file.unwrap();
+        ))
+    })?;
     let mut buffer = vec![0; BUFFER_SIZE];
     loop {
-        let num_read = src_file.read(&mut buffer);
-        if let Err(e) = num_read {
-            return Err(Error::new(&format!(
-                "Could not read from {}: {}",
-                src.description(),
-                e
-            )));
-        }
-
-        let num_read = num_read.unwrap();
+        let num_read = src_file.read(&mut buffer).map_err(|e| {
+            Error::new(&format!("Could not read from {}: {}", src.description(), e))
+        })?;
         if num_read == 0 {
             break;
         }
-        let write_result = dest_file.write_all(&buffer[0..num_read]);
-        if let Err(e) = write_result {
-            return Err(Error::new(&format!(
-                "Could not write to {}: {}",
-                dest.description(),
-                e
-            )));
-        }
+        dest_file.write_all(&buffer[0..num_read]).map_err(|e| {
+            Error::new(&format!("Could not write to {}: {}", dest.description(), e))
+        })?;
         let progress = ProgressMessage::Syncing {
             description: src.description().clone(),
             size: src_size as usize,
@@ -218,14 +180,11 @@ pub fn copy_entry(
 
 fn has_different_size(src: &Entry, dest: &Entry) -> bool {
     let src_meta = src.metadata().expect("src_meta should not be None");
-    let src_size = src_meta.len();
-
     let dest_meta = dest.metadata();
-    if dest_meta.is_none() {
-        return true;
+    match dest_meta {
+        None => true,
+        Some(dest_meta) => (dest_meta.len() != src_meta.len()),
     }
-    let dest_size = dest_meta.unwrap().len();
-    dest_size != src_size
 }
 
 pub fn sync_entries(
@@ -234,8 +193,8 @@ pub fn sync_entries(
     dest: &Entry,
 ) -> Result<SyncOutcome, Error> {
     let _ = progress_sender.send(ProgressMessage::StartSync(src.description().to_string()));
-    src.is_link().expect("src.is_link should not be None");
-    if src.is_link().unwrap() {
+    let is_link = src.is_link().expect("src.is_link should not be None");
+    if is_link {
         return copy_link(&src, &dest);
     }
     let different_size = has_different_size(&src, &dest);
