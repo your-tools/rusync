@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 
 use crate::entry::Entry;
+use crate::error::Error;
 use crate::fsops;
 use crate::fsops::SyncOutcome;
 use crate::progress::ProgressMessage;
@@ -31,7 +32,7 @@ impl SyncWorker {
         }
     }
 
-    pub fn start(self, opts: SyncOptions) -> fsops::FSResult<()> {
+    pub fn start(self, opts: SyncOptions) -> Result<(), Error> {
         for entry in self.input.iter() {
             let sync_outcome = self.sync(&entry, opts)?;
             let progress = ProgressMessage::DoneSyncing(sync_outcome);
@@ -40,27 +41,27 @@ impl SyncWorker {
         Ok(())
     }
 
-    fn create_missing_dest_dirs(&self, rel_path: &Path) -> fsops::FSResult<()> {
+    fn create_missing_dest_dirs(&self, rel_path: &Path) -> Result<(), Error> {
         let parent_rel_path = rel_path.parent();
         if parent_rel_path.is_none() {
-            return Err(fsops::FSError::from_description(&format!(
-                "Could not get parent path of {}",
-                rel_path.to_string_lossy()
+            return Err(Error::new(&format!(
+                "Could not get parent path of {:?}",
+                rel_path
             )));
         }
         let parent_rel_path = parent_rel_path.unwrap();
         let to_create = self.destination.join(parent_rel_path);
         let create_result = fs::create_dir_all(&to_create);
         if let Err(e) = create_result {
-            return Err(fsops::FSError::from_io_error(
-                e,
-                &format!("Could not create {}", &to_create.to_string_lossy()),
-            ));
+            return Err(Error::new(&format!(
+                "Could not create {:?}: {}",
+                to_create, e
+            )));
         }
         Ok(())
     }
 
-    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> fsops::FSResult<SyncOutcome> {
+    fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> Result<SyncOutcome, Error> {
         let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
         self.create_missing_dest_dirs(&rel_path)?;
         let desc = rel_path.to_string_lossy();

@@ -1,12 +1,12 @@
 use std::fs;
 use std::fs::DirEntry;
-use std::io;
 use std::option::Option;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 use crate::entry::Entry;
+use crate::error::Error;
 use crate::fsops;
 use crate::progress::ProgressMessage;
 
@@ -29,32 +29,43 @@ impl WalkWorker {
         }
     }
 
-    fn walk(&self) -> io::Result<()> {
+    fn walk(&self) -> Result<(), Error> {
         let mut num_files = 0;
         let mut total_size = 0;
         let mut subdirs: Vec<PathBuf> = vec![self.source.to_path_buf()];
         while !subdirs.is_empty() {
             let subdir = subdirs.pop().unwrap();
-            for entry in fs::read_dir(subdir)? {
-                let entry = entry?;
-                let path = entry.path();
-                if path.is_dir() {
-                    subdirs.push(path);
-                } else {
-                    let meta = self.process_file(&entry);
-                    if let Some(meta) = meta {
-                        num_files += 1;
-                        total_size += meta.len();
-                        let sent = self.progress_output.send(ProgressMessage::Todo {
-                            num_files,
-                            total_size: total_size as usize,
-                        });
-                        if sent.is_err() {
-                            return Err(fsops::to_io_error(
-                                &"stats output chan is closed".to_string(),
-                            ));
+            let entries = fs::read_dir(&subdir).map_err(|e| {
+                Error::new(&format!(
+                    "While walking source, could not read directory {:?}: {}",
+                    subdir, e
+                ))
+            })?;
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        subdirs.push(path);
+                    } else {
+                        let meta = self.process_file(&entry);
+                        if let Some(meta) = meta {
+                            num_files += 1;
+                            total_size += meta.len();
+                            let sent = self.progress_output.send(ProgressMessage::Todo {
+                                num_files,
+                                total_size: total_size as usize,
+                            });
+                            if sent.is_err() {
+                                return Err(Error::new("stats output chan is closed"));
+                            }
                         }
                     }
+                } else {
+                    return Err(Error::new(&format!(
+                        "While walking {:?} source dir, could not read entry: {}",
+                        subdir,
+                        entry.unwrap_err()
+                    )));
                 }
             }
         }

@@ -2,11 +2,11 @@
 //!
 //! Display transfer progress to the command line
 
-use colored::Colorize;
 use crate::progress::{Progress, ProgressInfo};
+use crate::sync;
+use colored::Colorize;
 use std::io;
 use std::io::Write;
-use crate::sync;
 use term_size;
 
 pub struct ConsoleProgressInfo {}
