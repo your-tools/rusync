@@ -46,8 +46,8 @@ impl ProgressInfo for ConsoleProgressInfo {
         let num_separators = 5;
         let line_width = get_terminal_width();
         let file_width = line_width - widgets_width - num_separators - 1;
-        let mut current_file = progress.current_file.clone();
-        current_file.truncate(file_width as usize);
+        let current_file = progress.current_file.clone();
+        let current_file = truncate_lossy(&current_file, file_width as usize);
         let current_file = format!(
             "{filename:<pad$}",
             pad = file_width as usize,
@@ -99,10 +99,27 @@ fn human_seconds(s: usize) -> String {
     return format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
 }
 
+fn truncate_lossy(text: &str, maxsize: usize) -> String {
+    // Our goal here is to make sure the text can be written
+    // in the terminal without going over the `maxsize` length
+    // Our approach is to first convert to bytes, then truncate
+    // the vector of bytes, then convert to a lossy string
+    // This way we *know* we won't cut at a char boundary
+    let mut as_bytes = text.to_string().into_bytes();
+    as_bytes.truncate(maxsize);
+    String::from_utf8_lossy(&as_bytes).to_string()
+}
+
 #[cfg(test)]
 mod test {
 
-    use super::human_seconds;
+    use super::*;
+
+    #[test]
+    fn test_truncate_string() {
+        let new_text = truncate_lossy("ééé", 2);
+        assert_eq!(new_text, "é");
+    }
 
     #[test]
     fn test_human_seconds() {
