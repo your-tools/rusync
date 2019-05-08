@@ -28,8 +28,8 @@ fn assert_same_contents(a: &Path, b: &Path) {
 }
 
 fn is_executable(path: &Path) -> bool {
-    let metadata =
-        std::fs::metadata(&path).expect(&format!("Could not get metadata of {:?}", path));
+    let metadata = std::fs::metadata(&path)
+        .unwrap_or_else(|e| panic!("Could not get metadata of {:?}: {}", path, e));
     let permissions = metadata.permissions();
     let mode = permissions.mode();
     mode & 0o111 != 0

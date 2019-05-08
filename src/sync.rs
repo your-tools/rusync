@@ -62,7 +62,7 @@ impl Stats {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct SyncOptions {
     /// Wether to preserve permissions of the source file after the destination is written.
     pub preserve_permissions: bool,
@@ -111,7 +111,7 @@ impl Syncer {
             progress_output,
         );
         let progress_worker = ProgressWorker::new(progress_input, self.progress_info);
-        let options = self.options.clone();
+        let options = self.options;
 
         let walker_thread = thread::spawn(move || walk_worker.start());
         let syncer_thread = thread::spawn(move || sync_worker.start(options));

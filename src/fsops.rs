@@ -222,17 +222,20 @@ mod tests {
     use super::*;
 
     fn create_file(path: &Path) {
-        let mut out = File::create(path).expect(&format!("could not open {:?} for writing", path));
+        let mut out = File::create(path)
+            .unwrap_or_else(|e| panic!("could not open {:?} for writing: {}", path, e));
         out.write_all(b"").expect("could not write old test");
     }
 
     fn create_link(src: &str, dest: &Path) {
-        unix::fs::symlink(&src, &dest).expect(&format!("could not link {:?} -> {:?}", src, dest));
+        unix::fs::symlink(&src, &dest)
+            .unwrap_or_else(|e| panic!("could not link {:?} -> {:?}: {}", src, dest, e));
     }
 
     fn assert_links_to(tmp_path: &Path, src: &str, dest: &str) {
         let src_path = tmp_path.join(src);
-        let link = std::fs::read_link(src_path).expect(&format!("could not read link {:?}", src));
+        let link = std::fs::read_link(src_path)
+            .unwrap_or_else(|e| panic!("could not read link {:?}: {}", src, e));
         assert_eq!(link.to_string_lossy(), dest);
     }
 

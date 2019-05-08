@@ -9,6 +9,7 @@ use std::io;
 use std::io::Write;
 use term_size;
 
+#[derive(Default)]
 pub struct ConsoleProgressInfo {}
 
 impl ConsoleProgressInfo {
@@ -109,7 +110,7 @@ mod test {
         assert_eq!("00:00:42", human_seconds(42));
         assert_eq!("00:03:05", human_seconds(185));
         assert_eq!("02:04:05", human_seconds(7445));
-        assert_eq!("200:00:02", human_seconds(720002));
+        assert_eq!("200:00:02", human_seconds(720_002));
     }
 
 }
