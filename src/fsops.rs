@@ -5,6 +5,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
+#[cfg(unix)]
 use std::os::unix;
 use std::path::Path;
 use std::path::PathBuf;
@@ -52,6 +53,7 @@ fn is_more_recent_than(src: &Entry, dest: &Entry) -> bool {
     src_precise > dest_precise
 }
 
+#[cfg(unix)]
 pub fn copy_permissions(src: &Entry, dest: &Entry) -> Result<(), Error> {
     let src_meta = &src.metadata();
     // is_link should not be none because we should have been able to
@@ -122,15 +124,23 @@ fn copy_link(src: &Entry, dest: &Entry) -> Result<SyncOutcome, Error> {
             outcome = SyncOutcome::SymlinkCreated;
         }
     }
-    let symlink_result = unix::fs::symlink(&src_target, &dest.path());
-    match symlink_result {
-        Err(e) => Err(Error::new(&format!(
-            "Could not create link from {} to {}: {}",
-            dest.description(),
-            src.description(),
-            e
-        ))),
-        Ok(_) => Ok(outcome),
+    #[cfg(unix)]
+    {
+        let symlink_result = unix::fs::symlink(&src_target, &dest.path());
+        match symlink_result {
+            Err(e) => Err(Error::new(&format!(
+                "Could not create link from {} to {}: {}",
+                dest.description(),
+                src.description(),
+                e
+            ))),
+            Ok(_) => Ok(outcome),
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        Ok(outcome)
     }
 }
 
@@ -209,17 +219,15 @@ pub fn sync_entries(
 #[cfg(test)]
 mod tests {
 
+    use super::*;
     extern crate tempdir;
     use self::tempdir::TempDir;
 
     use std;
-    use std::fs::File;
-    use std::io::prelude::*;
+    #[cfg(unix)]
     use std::os::unix;
     use std::path::Path;
     use std::path::PathBuf;
-
-    use super::*;
 
     fn create_file(path: &Path) {
         let mut out = File::create(path)
@@ -227,11 +235,13 @@ mod tests {
         out.write_all(b"").expect("could not write old test");
     }
 
+    #[cfg(unix)]
     fn create_link(src: &str, dest: &Path) {
         unix::fs::symlink(&src, &dest)
             .unwrap_or_else(|e| panic!("could not link {:?} -> {:?}: {}", src, dest, e));
     }
 
+    #[cfg(unix)]
     fn assert_links_to(tmp_path: &Path, src: &str, dest: &str) {
         let src_path = tmp_path.join(src);
         let link = std::fs::read_link(src_path)
@@ -239,6 +249,7 @@ mod tests {
         assert_eq!(link.to_string_lossy(), dest);
     }
 
+    #[cfg(unix)]
     fn setup_copy_test(tmp_path: &Path) -> PathBuf {
         let src = &tmp_path.join("src");
         create_file(&src);
@@ -247,6 +258,7 @@ mod tests {
         src_link.to_path_buf()
     }
 
+    #[cfg(unix)]
     fn sync_src_link(tmp_path: &Path, src_link: &Path, dest: &str) -> Result<SyncOutcome, Error> {
         let src_entry = Entry::new("src", &src_link);
         let dest_path = &tmp_path.join(&dest);
@@ -254,6 +266,7 @@ mod tests {
         copy_link(&src_entry, &dest_entry)
     }
 
+    #[cfg(unix)]
     #[test]
     fn copy_link_dest_does_not_exist() {
         let tmp_dir = TempDir::new("test-rusync-fsops").expect("failed to create temp dir");
@@ -265,6 +278,7 @@ mod tests {
         assert_links_to(&tmp_path, "new", "src");
     }
 
+    #[cfg(unix)]
     #[test]
     fn copy_link_dest_is_a_broken_link() {
         let tmp_dir = TempDir::new("test-rusync-fsops").expect("failed to create temp dir");
@@ -278,6 +292,7 @@ mod tests {
         assert_links_to(&tmp_path, "broken", "src");
     }
 
+    #[cfg(unix)]
     #[test]
     fn copy_link_dest_doest_not_point_to_correct_location() {
         let tmp_dir = TempDir::new("test-rusync-fsops").expect("failed to create temp dir");
@@ -293,6 +308,7 @@ mod tests {
         assert_links_to(&tmp_path, "existing_link", "src");
     }
 
+    #[cfg(unix)]
     #[test]
     fn copy_link_dest_is_a_regular_file() {
         let tmp_dir = TempDir::new("test-rusync-fsops").expect("failed to create temp dir");
@@ -307,5 +323,4 @@ mod tests {
         let desc = err.to_string();
         assert!(desc.contains("existing"));
     }
-
 }

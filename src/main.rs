@@ -12,7 +12,10 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "rusync")]
 struct Opt {
-    #[structopt(long = "no-perms")]
+    #[structopt(
+        long = "no-perms",
+        help = "Do not preserve permissions. no-op on Windows"
+    )]
     no_preserve_permissions: bool,
 
     #[structopt(parse(from_os_str))]

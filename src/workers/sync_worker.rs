@@ -66,8 +66,11 @@ impl SyncWorker {
         let dest_path = self.destination.join(&rel_path);
         let dest_entry = Entry::new(&desc, &dest_path);
         let outcome = fsops::sync_entries(&self.output, &src_entry, &dest_entry)?;
-        if opts.preserve_permissions {
-            fsops::copy_permissions(&src_entry, &dest_entry)?;
+        #[cfg(unix)]
+        {
+            if opts.preserve_permissions {
+                fsops::copy_permissions(&src_entry, &dest_entry)?;
+            }
         }
         Ok(outcome)
     }
