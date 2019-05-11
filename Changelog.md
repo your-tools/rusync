@@ -1,3 +1,11 @@
+# v0.5.2
+
+* Add Windows support
+* Use 2018 edition
+* Improve error handling. For instance, when an I/O error occurs, rusync always
+  prints the filename that triggered it.
+* Fix rare crash when displaying progress
+
 # v0.5.1
 
 * Fix misleading error message. Patch by @danieldulaney.
