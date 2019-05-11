@@ -4,9 +4,10 @@ extern crate tempdir;
 extern crate rusync;
 
 use std::fs;
-use std::fs::File;
 use std::io;
+#[cfg(unix)]
 use std::os::unix;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
@@ -27,6 +28,7 @@ fn assert_same_contents(a: &Path, b: &Path) {
     assert!(status.success(), "{:?} and {:?} differ", a, b)
 }
 
+#[cfg(unix)]
 fn is_executable(path: &Path) -> bool {
     let metadata = std::fs::metadata(&path)
         .unwrap_or_else(|e| panic!("Could not get metadata of {:?}: {}", path, e));
@@ -35,6 +37,7 @@ fn is_executable(path: &Path) -> bool {
     mode & 0o111 != 0
 }
 
+#[cfg(unix)]
 fn assert_executable(path: &Path) {
     assert!(
         is_executable(&path),
@@ -43,6 +46,7 @@ fn assert_executable(path: &Path) {
     );
 }
 
+#[cfg(unix)]
 fn assert_not_executable(path: &Path) {
     assert!(!is_executable(&path), "{:?} appears to be executable", path);
 }
@@ -79,29 +83,29 @@ fn new_test_syncer(src: &Path, dest: &Path) -> rusync::Syncer {
 }
 
 #[test]
-fn fresh_copy() {
-    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+fn fresh_copy() -> Result<(), std::io::Error> {
+    let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
     let outcome = syncer.sync();
-    assert!(
-        outcome.is_ok(),
-        "sync::sync failed with: {}",
-        outcome.err().expect("")
-    );
+    assert!(outcome.is_ok());
 
     let src_top = src_path.join("top.txt");
     let dest_top = dest_path.join("top.txt");
     assert_same_contents(&src_top, &dest_top);
 
-    let link_dest = dest_path.join("a_dir/link_to_one");
-    let target = fs::read_link(link_dest).expect("failed to read metada");
-    assert_eq!(target.to_string_lossy(), "one.txt");
+    #[cfg(unix)]
+    {
+        let link_dest = dest_path.join("a_dir/link_to_one");
+        let target = fs::read_link(link_dest)?;
+        assert_eq!(target.to_string_lossy(), "one.txt");
+    }
+    Ok(())
 }
 
 #[test]
-fn skip_up_to_date_files() {
-    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+fn skip_up_to_date_files() -> Result<(), std::io::Error> {
+    let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
 
@@ -109,27 +113,31 @@ fn skip_up_to_date_files() {
     assert_eq!(stats.up_to_date, 0);
 
     let src_top_txt = src_path.join("top.txt");
-    make_recent(&src_top_txt).expect("could not make top.txt recent");
+    make_recent(&src_top_txt)?;
     let syncer = new_test_syncer(&src_path, &dest_path);
 
-    let stats = syncer.sync().expect("");
+    let stats = syncer.sync().unwrap();
     assert_eq!(stats.copied, 1);
+    Ok(())
 }
 
 #[test]
-fn preserve_permissions() {
-    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+#[cfg(unix)]
+fn preserve_permissions() -> Result<(), std::io::Error> {
+    let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
     syncer.sync().unwrap();
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
     assert_executable(&dest_exe);
+    Ok(())
 }
 
 #[test]
-fn do_not_preserve_permissions() {
-    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+#[cfg(unix)]
+fn do_not_preserve_permissions() -> Result<(), std::io::Error> {
+    let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let mut options = rusync::SyncOptions::new();
     options.preserve_permissions = false;
@@ -139,36 +147,38 @@ fn do_not_preserve_permissions() {
         options,
         Box::new(DummyProgressInfo {}),
     );
-    syncer.sync().expect("");
+    syncer.sync().unwrap();
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
     assert_not_executable(&dest_exe);
+    Ok(())
 }
 
 #[test]
-fn rewrite_partially_written_files() {
-    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+fn rewrite_partially_written_files() -> Result<(), std::io::Error> {
+    let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let src_top = src_path.join("top.txt");
-    let expected = fs::read_to_string(&src_top).expect("");
+    let expected = fs::read_to_string(&src_top)?;
 
     let syncer = new_test_syncer(&src_path, &dest_path);
-    syncer.sync().expect("");
+    syncer.sync().unwrap();
     let dest_top = dest_path.join("top.txt");
     // Corrupt the dest/top.txt
-    fs::write(&dest_top, "this is").expect("");
+    fs::write(&dest_top, "this is")?;
 
     let syncer = new_test_syncer(&src_path, &dest_path);
-    syncer.sync().expect("");
-    let actual = fs::read_to_string(&dest_top).expect("");
+    syncer.sync().unwrap();
+    let actual = fs::read_to_string(&dest_top)?;
     assert_eq!(actual, expected);
+    Ok(())
 }
 
 #[test]
-fn dest_read_only() {
-    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+fn dest_read_only() -> Result<(), std::io::Error> {
+    let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    fs::create_dir_all(&dest_path).expect("");
+    fs::create_dir_all(&dest_path)?;
 
     let dest_top = dest_path.join("top.txt");
     fs::write(&dest_top, "this is read only").expect("");
@@ -179,29 +189,29 @@ fn dest_read_only() {
     top_file.set_permissions(permissions).unwrap();
 
     let src_top = src_path.join("top.txt");
-    make_recent(&src_top).expect("could not make top.txt recent");
+    make_recent(&src_top)?;
 
     let syncer = new_test_syncer(&src_path, &dest_path);
     let result = syncer.sync();
 
     assert!(result.is_err());
+    Ok(())
 }
 
 #[test]
-fn broken_link_in_src() {
-    let tmp_dir = TempDir::new("test-rusync").expect("failed to create temp dir");
+#[cfg(unix)]
+fn broken_link_in_src() -> Result<(), std::io::Error> {
+    let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
     let src_broken_link = &src_path.join("broken");
-    unix::fs::symlink("no-such", &src_broken_link).expect("");
+    unix::fs::symlink("no-such", &src_broken_link)?;
 
     let syncer = new_test_syncer(&src_path, &dest_path);
     let result = syncer.sync();
 
     let dest_broken_link = &dest_path.join("broken");
     assert!(!dest_broken_link.exists());
-    assert_eq!(
-        dest_broken_link.read_link().unwrap().to_string_lossy(),
-        "no-such"
-    );
+    assert_eq!(dest_broken_link.read_link()?.to_string_lossy(), "no-such");
     assert!(result.is_ok());
+    Ok(())
 }
