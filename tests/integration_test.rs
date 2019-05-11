@@ -181,12 +181,11 @@ fn dest_read_only() -> Result<(), std::io::Error> {
     fs::create_dir_all(&dest_path)?;
 
     let dest_top = dest_path.join("top.txt");
-    fs::write(&dest_top, "this is read only").expect("");
-    let top_file = File::open(dest_top).expect("");
-    let metadata = top_file.metadata().unwrap();
-    let mut permissions = metadata.permissions();
-    permissions.set_readonly(true);
-    top_file.set_permissions(permissions).unwrap();
+    fs::write(&dest_top, "this is read only")?;
+
+    let mut perms = fs::metadata(&dest_top)?.permissions();
+    perms.set_readonly(true);
+    fs::set_permissions(&dest_top, perms)?;
 
     let src_top = src_path.join("top.txt");
     make_recent(&src_top)?;
