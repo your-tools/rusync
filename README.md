@@ -28,6 +28,8 @@ $ rusync test/src test/dest
 
 * Print progress on one line, and erase it when done, thus avoiding flooding your terminal
   with useless noise.
+  
+* Displays a reliable ETA, without sacrificing speed.
 
 * Un-surprising behavior: missing directories are created
   on the fly, files are only copied if:
@@ -35,8 +37,6 @@ $ rusync test/src test/dest
   * Destination is missing
   * Older than the source
   * Or size is different
-
-* Minimalistic implementation
 
 # Missing
 
