@@ -5,14 +5,6 @@
 
 Minimalist `rsync` clone implemented in Rust.
 
-# Caveat
-
-We do everything we can to make sure data loss is impossible, but despite our best efforts, it may still happen.
-
-Please make sure your files files are backed up if necessary before using `rusync` on sensitive data.
-
-Thank you for your understanding!
-
 # Usage
 
 ```
@@ -21,6 +13,14 @@ $ rusync test/src test/dest
 :: Syncing from test/src to test/dest …
  50% 24/50 Downloads/archlinux.iso   00:01:30
 ```
+
+# Caveat
+
+We do everything we can to make sure data loss is impossible, but despite our best efforts, it may still happen.
+
+Please make sure your files files are backed up if necessary before using `rusync` on sensitive data.
+
+Thank you for your understanding!
 
 # Features
 
@@ -38,14 +38,7 @@ $ rusync test/src test/dest
   * Older than the source
   * Or size is different
 
-# Missing
 
-There are *tons* of stuff in `rsync` we don't implement.
+# State of the project
 
-But for me, the goal was to learn more about Rust and I've learned plenty of things already.
-
-The big missing feature is an option to delete extraneous files. Maybe I'll start working on it one day.
-
-Some people have asked for transfer over `ssh`. Not sure if that can be easily done. Maybe try using `rusync` normally on top of `sshfs`?
-
-For the rest, well, patches are welcome!
+I consider this project *done* - I don't intend on adding new features. The goal was to learn more about Rust and I've learned plenty of things already. If there's a feature present in `rsync` that is not available in `rusync`, just use `rsync`  - or try and implement the feature yourself, I'll be happy to review and merge your changes :)
