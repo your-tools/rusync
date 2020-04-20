@@ -4,7 +4,7 @@ version = "0.5.2"
 authors = ["Dimitri Merejkowsky <d.merej@gmail.com>"]
 
 readme = "README.md"
-description = "rsync in rust"
+description = "Minimalist rsync clone in Rust"
 license = "BSD-3-Clause"
 
 keywords = ["rsync"]
