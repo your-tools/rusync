@@ -12,8 +12,8 @@
 //! let console_info = rusync::ConsoleProgressInfo::new();
 //! // or any struct that implements the ProgressInfo trait
 //!
-//! let options = rusync::SyncOptions::new();
-//! // can set any public field of SyncOptions here
+//! let options = rusync::SyncOptions::default();
+//!
 //!
 //! let source = std::path::Path::new("src");
 //! let destination = std::path::Path::new("dest");

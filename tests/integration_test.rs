@@ -78,7 +78,9 @@ impl ProgressInfo for DummyProgressInfo {}
 
 fn new_test_syncer(src: &Path, dest: &Path) -> rusync::Syncer {
     let dummy_progress_info = DummyProgressInfo {};
-    let options = rusync::SyncOptions::new();
+    let options = rusync::SyncOptions {
+        preserve_permissions: true,
+    };
     rusync::Syncer::new(&src, &dest, options, Box::new(dummy_progress_info))
 }
 
@@ -139,8 +141,9 @@ fn preserve_permissions() -> Result<(), std::io::Error> {
 fn do_not_preserve_permissions() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
     let (src_path, dest_path) = setup_test(&tmp_dir.path());
-    let mut options = rusync::SyncOptions::new();
-    options.preserve_permissions = false;
+    let options = rusync::SyncOptions {
+        preserve_permissions: false,
+    };
     let syncer = rusync::Syncer::new(
         &src_path,
         &dest_path,

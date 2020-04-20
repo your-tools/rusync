@@ -62,15 +62,15 @@ impl Stats {
     }
 }
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone)]
 pub struct SyncOptions {
     /// Wether to preserve permissions of the source file after the destination is written.
     pub preserve_permissions: bool,
 }
 
-impl SyncOptions {
-    pub fn new() -> SyncOptions {
-        SyncOptions {
+impl Default for SyncOptions {
+    fn default() -> Self {
+        Self {
             preserve_permissions: true,
         }
     }
