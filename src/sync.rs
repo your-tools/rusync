@@ -80,7 +80,7 @@ pub struct Syncer {
     source: PathBuf,
     destination: PathBuf,
     options: SyncOptions,
-    progress_info: Box<ProgressInfo + Send>,
+    progress_info: Box<dyn ProgressInfo + Send>,
 }
 
 impl Syncer {
@@ -88,7 +88,7 @@ impl Syncer {
         source: &Path,
         destination: &Path,
         options: SyncOptions,
-        progress_info: Box<ProgressInfo + Send>,
+        progress_info: Box<dyn ProgressInfo + Send>,
     ) -> Syncer {
         Syncer {
             source: source.to_path_buf(),

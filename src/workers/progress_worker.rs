@@ -6,13 +6,13 @@ use crate::sync::Stats;
 
 pub struct ProgressWorker {
     input: Receiver<ProgressMessage>,
-    progress_info: Box<ProgressInfo + Send>,
+    progress_info: Box<dyn ProgressInfo + Send>,
 }
 
 impl ProgressWorker {
     pub fn new(
         input: Receiver<ProgressMessage>,
-        progress_info: Box<ProgressInfo + Send>,
+        progress_info: Box<dyn ProgressInfo + Send>,
     ) -> ProgressWorker {
         ProgressWorker {
             input,
