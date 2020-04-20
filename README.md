@@ -24,7 +24,7 @@ Thank you for your understanding!
 
 # Features
 
-* Easy to remember command line syntax
+* Easy to remember command line syntax.
 
 * Print progress on one line, and erase it when done, thus avoiding flooding your terminal
   with useless noise.
@@ -37,6 +37,12 @@ Thank you for your understanding!
   * Destination is missing
   * Older than the source
   * Or size is different
+
+# Command line options
+
+Just one at the moment:
+
+* `--no-perms`: prevents`rusync` from trying to preserve file permissions (useful if you copy data from a Linux partition to NTFSfor instance).
 
 
 # State of the project
