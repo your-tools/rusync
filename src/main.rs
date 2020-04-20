@@ -14,7 +14,7 @@ use structopt::StructOpt;
 struct Opt {
     #[structopt(
         long = "no-perms",
-        help = "Do not preserve permissions. no-op on Windows"
+        help = "Do not preserve permissions (no-op on Windows)"
     )]
     no_preserve_permissions: bool,
 
