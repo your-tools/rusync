@@ -28,10 +28,10 @@ Thank you for your understanding!
 
 * Print progress on one line, and erase it when done, thus avoiding flooding your terminal
   with useless noise.
-  
+
 * Displays a reliable ETA, without sacrificing speed.
 
-* Un-surprising behavior: missing directories are created
+* Unsurprising behavior: missing directories are created
   on the fly, files are only copied if:
 
   * Destination is missing
@@ -42,7 +42,7 @@ Thank you for your understanding!
 
 Just one at the moment:
 
-* `--no-perms`: prevents`rusync` from trying to preserve file permissions (useful if you copy data from a Linux partition to NTFSfor instance).
+* `--no-perms`: prevents`rusync` from trying to preserve file permissions (useful if you copy data from a Linux partition to NTFS for instance).
 
 
 # State of the project
