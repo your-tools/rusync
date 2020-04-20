@@ -1,3 +1,9 @@
+# v0.5.3
+
+* Cleanup README, command line options, project description and so on.
+* Fix Clippy warnings
+* Fix deprecated syntax
+
 # v0.5.2
 
 * Add Windows support
