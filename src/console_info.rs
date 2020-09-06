@@ -101,6 +101,12 @@ impl ProgressInfo for ConsoleProgressInfo {
     }
 }
 
+impl Default for ConsoleProgressInfo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn get_terminal_width() -> usize {
     if let Some((w, _)) = term_size::dimensions() {
         return w;
