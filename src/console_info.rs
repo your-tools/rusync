@@ -8,21 +8,26 @@ use colored::Colorize;
 use std::fs::OpenOptions;
 use std::io;
 use std::io::Write;
-
-static ERROR_LIST_FILE: &str = ".rusync.errlist";
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct ConsoleProgressInfo {
-    err_file: std::fs::File,
+    err_file: Option<std::fs::File>,
 }
 
 impl ConsoleProgressInfo {
-    pub fn new() -> Result<ConsoleProgressInfo, std::io::Error> {
+    pub fn new() -> Self {
+        Self { err_file: None }
+    }
+
+    pub fn with_error_list_path(error_list_path: &Path) -> Result<Self, std::io::Error> {
         let err_file = OpenOptions::new()
             .create(true)
             .write(true)
-            .open(ERROR_LIST_FILE)?;
-        Ok(ConsoleProgressInfo { err_file })
+            .open(error_list_path)?;
+        Ok(Self {
+            err_file: Some(err_file),
+        })
     }
 }
 
@@ -70,11 +75,13 @@ impl ProgressInfo for ConsoleProgressInfo {
     }
 
     fn error(&mut self, entry: &str, desc: &str) {
-        eprintln!("Errror: {}: {}", entry, desc);
-        // Ignoring errrors when trying to log errors ...
-        let _ = self.err_file.write(entry.as_bytes());
-        let _ = self.err_file.write(b"\n");
-        let _ = self.err_file.flush();
+        eprintln!("Errror: {}", desc);
+        if let Some(err_file) = &mut self.err_file {
+            // Ignoring errrors when trying to log errors ...
+            let _ = err_file.write(entry.as_bytes());
+            let _ = err_file.write(b"\n");
+            let _ = err_file.flush();
+        }
     }
 
     fn end(&mut self, stats: &sync::Stats) {
@@ -90,7 +97,6 @@ impl ProgressInfo for ConsoleProgressInfo {
         );
         if stats.errors != 0 {
             eprintln!("{} errors occurred", stats.errors);
-            eprintln!("See {} for the list of failures", ERROR_LIST_FILE);
         }
     }
 }

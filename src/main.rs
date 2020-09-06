@@ -18,6 +18,9 @@ struct Opt {
     )]
     no_preserve_permissions: bool,
 
+    #[structopt(long = "err-list", help = "Write errors to the given file")]
+    error_list_path: Option<PathBuf>,
+
     #[structopt(parse(from_os_str))]
     source: PathBuf,
 
@@ -34,7 +37,10 @@ fn main() -> Result<(), std::io::Error> {
     }
     let destination = &opt.destination;
 
-    let console_info = ConsoleProgressInfo::new()?;
+    let console_info = match opt.error_list_path {
+        Some(err_file) => ConsoleProgressInfo::with_error_list_path(&err_file)?,
+        None => ConsoleProgressInfo::new(),
+    };
     let options = SyncOptions {
         preserve_permissions: !opt.no_preserve_permissions,
     };
