@@ -9,7 +9,7 @@
 //! # Example
 //!
 //! ```
-//! let console_info = rusync::ConsoleProgressInfo::new();
+//! let console_info = rusync::ConsoleProgressInfo::new().unwrap();
 //! // or any struct that implements the ProgressInfo trait
 //!
 //! let options = rusync::SyncOptions::default();

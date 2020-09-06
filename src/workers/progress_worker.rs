@@ -46,6 +46,10 @@ impl ProgressWorker {
                     stats.add_outcome(&x);
                     file_done = 0;
                 }
+                ProgressMessage::SyncError { entry, details } => {
+                    self.progress_info.error(&entry, &details);
+                    stats.add_error();
+                }
                 ProgressMessage::Syncing { done, size, .. } => {
                     file_done += done;
                     total_done += done;

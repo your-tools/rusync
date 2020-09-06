@@ -25,7 +25,7 @@ struct Opt {
     destination: PathBuf,
 }
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     let opt = Opt::from_args();
     let source = &opt.source;
     if !source.is_dir() {
@@ -34,7 +34,7 @@ fn main() {
     }
     let destination = &opt.destination;
 
-    let console_info = ConsoleProgressInfo::new();
+    let console_info = ConsoleProgressInfo::new()?;
     let options = SyncOptions {
         preserve_permissions: !opt.no_preserve_permissions,
     };
@@ -45,7 +45,10 @@ fn main() {
             eprintln!("{}", err);
             process::exit(1);
         }
-        Ok(_) => {
+        Ok(stats) if stats.errors > 0 => {
+            process::exit(1);
+        }
+        _ => {
             process::exit(0);
         }
     }

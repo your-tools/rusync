@@ -14,6 +14,10 @@ pub enum ProgressMessage {
         size: usize,
         done: usize,
     },
+    SyncError {
+        entry: String,
+        details: String,
+    },
 }
 
 pub struct Progress {
@@ -58,4 +62,8 @@ pub trait ProgressInfo {
     /// of the transfer in the Stats struct
     #[allow(unused_variables)]
     fn end(&mut self, stats: &Stats) {}
+
+    /// The entry could not be synced
+    #[allow(unused_variables)]
+    fn error(&mut self, entry: &str, details: &str) {}
 }

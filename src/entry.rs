@@ -78,5 +78,4 @@ mod tests {
         assert!(is_link.is_some());
         assert!(!is_link.unwrap());
     }
-
 }

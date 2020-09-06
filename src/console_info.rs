@@ -5,16 +5,25 @@
 use crate::progress::{Progress, ProgressInfo};
 use crate::sync;
 use colored::Colorize;
+use std::fs::OpenOptions;
 use std::io;
 use std::io::Write;
 use term_size;
 
-#[derive(Default)]
-pub struct ConsoleProgressInfo {}
+static ERROR_LIST_FILE: &'static str = ".rusync.errlist";
+
+#[derive(Debug)]
+pub struct ConsoleProgressInfo {
+    err_file: std::fs::File,
+}
 
 impl ConsoleProgressInfo {
-    pub fn new() -> ConsoleProgressInfo {
-        ConsoleProgressInfo {}
+    pub fn new() -> Result<ConsoleProgressInfo, std::io::Error> {
+        let err_file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(ERROR_LIST_FILE)?;
+        Ok(ConsoleProgressInfo { err_file })
     }
 }
 
@@ -61,6 +70,14 @@ impl ProgressInfo for ConsoleProgressInfo {
         let _ = io::stdout().flush();
     }
 
+    fn error(&mut self, entry: &str, desc: &str) {
+        eprintln!("Errror: {}: {}", entry, desc);
+        // Ignoring errrors when trying to log errors ...
+        let _ = self.err_file.write(entry.as_bytes());
+        let _ = self.err_file.write(b"\n");
+        let _ = self.err_file.flush();
+    }
+
     fn end(&mut self, stats: &sync::Stats) {
         println!(
             "{} Synced {} files ({} up to date)",
@@ -72,6 +89,10 @@ impl ProgressInfo for ConsoleProgressInfo {
             "{} files copied, {} symlinks created, {} symlinks updated",
             stats.copied, stats.symlink_created, stats.symlink_updated
         );
+        if stats.errors != 0 {
+            eprintln!("{} errors occurred", stats.errors);
+            eprintln!("See {} for the list of failures", ERROR_LIST_FILE);
+        }
     }
 }
 
@@ -129,5 +150,4 @@ mod test {
         assert_eq!("02:04:05", human_seconds(7445));
         assert_eq!("200:00:02", human_seconds(720_002));
     }
-
 }

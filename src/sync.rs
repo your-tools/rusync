@@ -28,6 +28,8 @@ pub struct Stats {
     pub up_to_date: u64,
     /// Number of files that were copied
     pub copied: u64,
+    /// Number of errors
+    pub errors: u64,
 
     /// Number of symlink created in the destination folder
     pub symlink_created: u64,
@@ -44,10 +46,15 @@ impl Stats {
             num_synced: 0,
             up_to_date: 0,
             copied: 0,
+            errors: 0,
 
             symlink_created: 0,
             symlink_updated: 0,
         }
+    }
+
+    pub fn add_error(&mut self) {
+        self.errors += 1;
     }
 
     #[doc(hidden)]

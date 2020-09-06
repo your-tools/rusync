@@ -3,3 +3,5 @@ test/
 
 # created when runnig doc tests
 dest/
+
+.rusync.errlist

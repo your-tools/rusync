@@ -34,10 +34,16 @@ impl SyncWorker {
 
     pub fn start(self, opts: SyncOptions) -> Result<(), Error> {
         for entry in self.input.iter() {
-            let sync_outcome = self.sync(&entry, opts)?;
-            let progress = ProgressMessage::DoneSyncing(sync_outcome);
+            let sync_outcome = self.sync(&entry, opts);
+            let progress_message = match sync_outcome {
+                Ok(s) => ProgressMessage::DoneSyncing(s),
+                Err(e) => ProgressMessage::SyncError {
+                    entry: entry.description().to_string(),
+                    details: e.to_string(),
+                },
+            };
             self.output
-                .send(progress)
+                .send(progress_message)
                 .map_err(|e| Error::new(&format!("Could not send: {}", e)))?;
         }
         Ok(())

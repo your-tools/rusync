@@ -194,9 +194,8 @@ fn dest_read_only() -> Result<(), std::io::Error> {
     make_recent(&src_top)?;
 
     let syncer = new_test_syncer(&src_path, &dest_path);
-    let result = syncer.sync();
-
-    assert!(result.is_err());
+    let result = syncer.sync().unwrap();
+    assert_eq!(result.errors, 1);
     Ok(())
 }
 
