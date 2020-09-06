@@ -40,9 +40,10 @@ Thank you for your understanding!
 
 # Command line options
 
-Just one at the moment:
+Just two at the moment:
 
 * `--no-perms`: prevents`rusync` from trying to preserve file permissions (useful if you copy data from a Linux partition to NTFS for instance).
+* `--err-list FILE`: write name of entries that caused errors in the given file, separated by `\n`
 
 
 # State of the project
