@@ -27,6 +27,7 @@ impl ProgressWorker {
         let mut index = 0;
         let mut total_done = 0;
         let now = Instant::now();
+        stats.start();
         for progress in self.input.iter() {
             match progress {
                 ProgressMessage::Todo {
@@ -69,6 +70,7 @@ impl ProgressWorker {
                 }
             }
         }
+        stats.stop();
         self.progress_info.end(&stats);
         stats
     }

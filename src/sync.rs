@@ -14,12 +14,14 @@ use crate::workers::ProgressWorker;
 use crate::workers::SyncWorker;
 use crate::workers::WalkWorker;
 
-#[derive(Default)]
+#[derive(Debug)]
 pub struct Stats {
     /// Number of files in the source
     pub num_files: u64,
     /// Sum of the sizes of all the files in the source
     pub total_size: usize,
+    /// Sum of the sizes of all the files that were synced
+    pub total_transfered: u64,
 
     /// Number of files transfered (should match `num_files`
     /// if no error)
@@ -35,6 +37,11 @@ pub struct Stats {
     pub symlink_created: u64,
     /// Number of symlinks updated in the destination folder
     pub symlink_updated: u64,
+
+    /// Duration of the transfer
+    pub duration: std::time::Duration,
+
+    start: std::time::Instant,
 }
 
 impl Stats {
@@ -42,6 +49,7 @@ impl Stats {
         Stats {
             num_files: 0,
             total_size: 0,
+            total_transfered: 0,
 
             num_synced: 0,
             up_to_date: 0,
@@ -50,7 +58,22 @@ impl Stats {
 
             symlink_created: 0,
             symlink_updated: 0,
+            start: std::time::Instant::now(),
+            duration: std::time::Duration::new(0, 0),
         }
+    }
+
+    pub fn start(&mut self) {
+        self.start = std::time::Instant::now();
+    }
+
+    pub fn stop(&mut self) {
+        let end = std::time::Instant::now();
+        self.duration = end - self.start;
+    }
+
+    pub fn duration(&self) -> std::time::Duration {
+        self.duration
     }
 
     pub fn add_error(&mut self) {
@@ -61,7 +84,10 @@ impl Stats {
     pub fn add_outcome(&mut self, outcome: &fsops::SyncOutcome) {
         self.num_synced += 1;
         match outcome {
-            FileCopied => self.copied += 1,
+            FileCopied { size } => {
+                self.copied += 1;
+                self.total_transfered += size;
+            }
             UpToDate => self.up_to_date += 1,
             SymlinkUpdated => self.symlink_updated += 1,
             SymlinkCreated => self.symlink_created += 1,

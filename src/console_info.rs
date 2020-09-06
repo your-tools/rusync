@@ -5,6 +5,7 @@
 use crate::progress::{Progress, ProgressInfo};
 use crate::sync;
 use colored::Colorize;
+use humansize::{file_size_opts as options, FileSize};
 use std::fs::OpenOptions;
 use std::io;
 use std::io::Write;
@@ -95,6 +96,14 @@ impl ProgressInfo for ConsoleProgressInfo {
             "{} files copied, {} symlinks created, {} symlinks updated",
             stats.copied, stats.symlink_created, stats.symlink_updated
         );
+        let transfered = stats.total_transfered;
+        // We know transfered cannot be negative
+        let transfered = transfered.file_size(options::DECIMAL).unwrap();
+        let duration = stats.duration();
+        // Truncate below 1 second
+        let duration = std::time::Duration::from_secs(duration.as_secs());
+        let duration = humantime::format_duration(duration);
+        println!("{} copied in {}", transfered, duration);
         if stats.errors != 0 {
             eprintln!("{} errors occurred", stats.errors);
         }

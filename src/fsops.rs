@@ -21,7 +21,7 @@ const BUFFER_SIZE: usize = 100 * 1024;
 #[derive(PartialEq, Debug)]
 pub enum SyncOutcome {
     UpToDate,
-    FileCopied,
+    FileCopied { size: u64 },
     SymlinkUpdated,
     SymlinkCreated,
 }
@@ -184,7 +184,7 @@ pub fn copy_entry(
         };
         let _ = progress_sender.send(progress);
     }
-    Ok(SyncOutcome::FileCopied)
+    Ok(SyncOutcome::FileCopied { size: src_size })
 }
 
 fn has_different_size(src: &Entry, dest: &Entry) -> bool {
