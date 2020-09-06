@@ -45,6 +45,7 @@ pub struct Stats {
 }
 
 impl Stats {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Stats {
         Stats {
             num_files: 0,
