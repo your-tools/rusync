@@ -19,11 +19,11 @@ impl ConsoleProgressInfo {
 }
 
 impl ProgressInfo for ConsoleProgressInfo {
-    fn done_syncing(&self) {
+    fn done_syncing(&mut self) {
         erase_line();
     }
 
-    fn start(&self, source: &str, destination: &str) {
+    fn start(&mut self, source: &str, destination: &str) {
         println!(
             "{} Syncing from {} to {} …",
             "::".color("blue"),
@@ -32,9 +32,9 @@ impl ProgressInfo for ConsoleProgressInfo {
         )
     }
 
-    fn new_file(&self, _name: &str) {}
+    fn new_file(&mut self, _name: &str) {}
 
-    fn progress(&self, progress: &Progress) {
+    fn progress(&mut self, progress: &Progress) {
         let eta_str = human_seconds(progress.eta);
         let percent_width = 3;
         let eta_width = eta_str.len();
@@ -61,7 +61,7 @@ impl ProgressInfo for ConsoleProgressInfo {
         let _ = io::stdout().flush();
     }
 
-    fn end(&self, stats: &sync::Stats) {
+    fn end(&mut self, stats: &sync::Stats) {
         println!(
             "{} Synced {} files ({} up to date)",
             " ✓".color("green"),

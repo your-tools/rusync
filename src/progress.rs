@@ -40,22 +40,22 @@ pub trait ProgressInfo {
     /// A new transfer has begun from the `source` directory to the `destination`
     /// directory
     #[allow(unused_variables)]
-    fn start(&self, source: &str, destination: &str) {}
+    fn start(&mut self, source: &str, destination: &str) {}
 
     /// A new file named `name` is being transfered
     #[allow(unused_variables)]
-    fn new_file(&self, name: &str) {}
+    fn new_file(&mut self, name: &str) {}
 
     /// The file transfer is done
     #[allow(unused_variables)]
-    fn done_syncing(&self) {}
+    fn done_syncing(&mut self) {}
 
     /// Callback for the detailed progress
     #[allow(unused_variables)]
-    fn progress(&self, progress: &Progress) {}
+    fn progress(&mut self, progress: &Progress) {}
 
     /// The transfer between `source` and `destination` is done. Details
     /// of the transfer in the Stats struct
     #[allow(unused_variables)]
-    fn end(&self, stats: &Stats) {}
+    fn end(&mut self, stats: &Stats) {}
 }

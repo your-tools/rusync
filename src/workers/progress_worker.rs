@@ -20,7 +20,7 @@ impl ProgressWorker {
         }
     }
 
-    pub fn start(self) -> Stats {
+    pub fn start(mut self) -> Stats {
         let mut stats = Stats::new();
         let mut file_done = 0;
         let mut current_file = String::from("");
