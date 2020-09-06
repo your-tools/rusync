@@ -1,6 +1,5 @@
 extern crate pathdiff;
 
-use std;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
@@ -223,7 +222,6 @@ mod tests {
     extern crate tempdir;
     use self::tempdir::TempDir;
 
-    use std;
     #[cfg(unix)]
     use std::os::unix;
     use std::path::Path;

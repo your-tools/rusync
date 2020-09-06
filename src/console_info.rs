@@ -8,9 +8,8 @@ use colored::Colorize;
 use std::fs::OpenOptions;
 use std::io;
 use std::io::Write;
-use term_size;
 
-static ERROR_LIST_FILE: &'static str = ".rusync.errlist";
+static ERROR_LIST_FILE: &str = ".rusync.errlist";
 
 #[derive(Debug)]
 pub struct ConsoleProgressInfo {
