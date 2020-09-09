@@ -221,6 +221,7 @@ mod tests {
     use super::*;
     extern crate tempdir;
     use self::tempdir::TempDir;
+    use std::sync::mpsc::channel;
 
     #[cfg(unix)]
     use std::os::unix;
@@ -236,6 +237,25 @@ mod tests {
         unix::fs::symlink(&src, &dest)
     }
 
+    #[test]
+    fn copy_regular_file() -> Result<(), std::io::Error> {
+        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_path = tmp_dir.path();
+        let src = &tmp_path.join("src.txt");
+        let contents = "some contents";
+        std::fs::write(&src, &contents)?;
+        let src_entry = Entry::new("src.txt", &src);
+        let dest = &tmp_path.join("dest.txt");
+        let dest_entry = Entry::new("dest.txt", &dest);
+
+        let (progress_output, _) = channel::<ProgressMessage>();
+        sync_entries(&progress_output, &src_entry, &dest_entry).unwrap();
+
+        let actual = std::fs::read_to_string(&dest)?;
+        assert_eq!(actual, contents);
+        Ok(())
+    }
+
     #[cfg(unix)]
     fn assert_links_to(tmp_path: &Path, src: &str, dest: &str) {
         let src_path = tmp_path.join(src);
@@ -245,7 +265,7 @@ mod tests {
     }
 
     #[cfg(unix)]
-    fn setup_copy_test(tmp_path: &Path) -> Result<PathBuf, std::io::Error> {
+    fn setup_sync_link_test(tmp_path: &Path) -> Result<PathBuf, std::io::Error> {
         let src = &tmp_path.join("src");
         create_file(&src)?;
         let src_link = &tmp_path.join("src_link");
@@ -263,10 +283,10 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn copy_link_dest_does_not_exist() -> Result<(), std::io::Error> {
+    fn create_link_when_dest_does_not_exist() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
         let tmp_path = tmp_dir.path();
-        let src_link = setup_copy_test(tmp_path)?;
+        let src_link = setup_sync_link_test(tmp_path)?;
 
         let outcome = sync_src_link(&tmp_path, &src_link, "new");
         assert_eq!(outcome.unwrap(), SyncOutcome::SymlinkCreated);
@@ -276,10 +296,10 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn copy_link_dest_is_a_broken_link() -> Result<(), std::io::Error> {
+    fn create_link_dest_is_a_broken_link() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
         let tmp_path = tmp_dir.path();
-        let src_link = setup_copy_test(tmp_path)?;
+        let src_link = setup_sync_link_test(tmp_path)?;
 
         let broken_link = &tmp_path.join("broken");
         create_link("no-such-file", &broken_link)?;
@@ -291,10 +311,10 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn copy_link_dest_doest_not_point_to_correct_location() -> Result<(), std::io::Error> {
+    fn create_link_dest_doest_not_point_to_correct_location() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
         let tmp_path = tmp_dir.path();
-        let src_link = setup_copy_test(tmp_path)?;
+        let src_link = setup_sync_link_test(tmp_path)?;
 
         let old_dest = &tmp_path.join("old");
         create_file(&old_dest)?;
@@ -308,10 +328,10 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn copy_link_dest_is_a_regular_file() -> Result<(), std::io::Error> {
+    fn create_link_dest_is_a_regular_file() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
         let tmp_path = tmp_dir.path();
-        let src_link = setup_copy_test(tmp_path)?;
+        let src_link = setup_sync_link_test(tmp_path)?;
 
         let existing_file = tmp_path.join("existing");
         create_file(&existing_file)?;
