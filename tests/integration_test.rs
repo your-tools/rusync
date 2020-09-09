@@ -96,12 +96,6 @@ fn fresh_copy() -> Result<(), std::io::Error> {
     let dest_top = dest_path.join("top.txt");
     assert_same_contents(&src_top, &dest_top);
 
-    #[cfg(unix)]
-    {
-        let link_dest = dest_path.join("a_dir/link_to_one");
-        let target = fs::read_link(link_dest)?;
-        assert_eq!(target.to_string_lossy(), "one.txt");
-    }
     Ok(())
 }
 
