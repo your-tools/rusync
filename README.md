@@ -2,6 +2,9 @@
 
 <a href="https://crates.io/crates/rusync"><img src="https://img.shields.io/crates/v/rusync.svg"/></a>
 <a href="https://github.com/dmerejkowsky/rusync/actions"><img src="https://github.com/dmerejkowsky/rusync/workflows/Run%20tests/badge.svg"/></a>
+<a href="https://github.com/dmerejkowsky/rusync/actions"><img src="https://github.com/dmerejkowsky/rusync/workflows/Run%20linters/badge.svg"/></a>
+<a href="https://github.com/dmerejkowsky/rusync/actions"><img src="https://github.com/dmerejkowsky/rusync/workflows/Audit%20dependencies/badge.svg"/></a>
+
 
 Minimalist `rsync` implementation in Rust.
 
