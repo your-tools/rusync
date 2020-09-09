@@ -1,7 +1,7 @@
 # rusync
 
 <a href="https://crates.io/crates/rusync"><img src="https://img.shields.io/crates/v/rusync.svg"/></a>
-<a href="https://travis-ci.org/dmerejkowsky/rusync"><img src="https://api.travis-ci.org/dmerejkowsky/rusync.svg?branch=master"/></a>
+<a href="https://github.com/dmerejkowsky/rusync/actions"><img src="https://github.com/dmerejkowsky/rusync/workflows/tests/badge.svg"/></a>
 
 Minimalist `rsync` implementation in Rust.
 
