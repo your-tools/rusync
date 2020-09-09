@@ -217,28 +217,12 @@ pub fn sync_entries(
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-    extern crate tempdir;
-    use self::tempdir::TempDir;
     use std::sync::mpsc::channel;
-
-    #[cfg(unix)]
-    use std::os::unix;
-    use std::path::Path;
-    use std::path::PathBuf;
-
-    fn create_file(path: &Path) -> Result<(), std::io::Error> {
-        std::fs::write(path, "")
-    }
-
-    #[cfg(unix)]
-    fn create_link(src: &str, dest: &Path) -> Result<(), std::io::Error> {
-        unix::fs::symlink(&src, &dest)
-    }
+    use tempdir::TempDir;
 
     #[test]
-    fn copy_regular_file() -> Result<(), std::io::Error> {
+    fn create_file() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
         let tmp_path = tmp_dir.path();
         let src = &tmp_path.join("src.txt");
@@ -256,7 +240,45 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unix)]
+    #[test]
+    fn overwrite_file() -> Result<(), std::io::Error> {
+        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_path = tmp_dir.path();
+        let src = &tmp_path.join("src.txt");
+        let new_contents = "new and shiny";
+        std::fs::write(&src, &new_contents)?;
+        let src_entry = Entry::new("src.txt", &src);
+        let dest = &tmp_path.join("dest.txt");
+        let old_contents = "old";
+        let dest_entry = Entry::new("dest.txt", &dest);
+        std::fs::write(&dest, &old_contents)?;
+
+        let (progress_output, _) = channel::<ProgressMessage>();
+        sync_entries(&progress_output, &src_entry, &dest_entry).unwrap();
+
+        let actual = std::fs::read_to_string(&dest)?;
+        assert_eq!(actual, new_contents);
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+#[cfg(test)]
+mod symlink_tests {
+    use super::*;
+    use std::os::unix;
+    use std::path::Path;
+    use std::path::PathBuf;
+    use tempdir::TempDir;
+
+    fn create_link(src: &str, dest: &Path) -> Result<(), std::io::Error> {
+        unix::fs::symlink(&src, &dest)
+    }
+
+    fn create_file(path: &Path) -> Result<(), std::io::Error> {
+        std::fs::write(path, "")
+    }
+
     fn assert_links_to(tmp_path: &Path, src: &str, dest: &str) {
         let src_path = tmp_path.join(src);
         let link = std::fs::read_link(src_path)
@@ -264,7 +286,6 @@ mod tests {
         assert_eq!(link.to_string_lossy(), dest);
     }
 
-    #[cfg(unix)]
     fn setup_sync_link_test(tmp_path: &Path) -> Result<PathBuf, std::io::Error> {
         let src = &tmp_path.join("src");
         create_file(&src)?;
@@ -273,7 +294,6 @@ mod tests {
         Ok(src_link.to_path_buf())
     }
 
-    #[cfg(unix)]
     fn sync_src_link(tmp_path: &Path, src_link: &Path, dest: &str) -> Result<SyncOutcome, Error> {
         let src_entry = Entry::new("src", &src_link);
         let dest_path = &tmp_path.join(&dest);
@@ -281,7 +301,6 @@ mod tests {
         copy_link(&src_entry, &dest_entry)
     }
 
-    #[cfg(unix)]
     #[test]
     fn create_link_when_dest_does_not_exist() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
@@ -294,7 +313,6 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unix)]
     #[test]
     fn create_link_dest_is_a_broken_link() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
@@ -309,7 +327,6 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unix)]
     #[test]
     fn create_link_dest_doest_not_point_to_correct_location() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
@@ -326,7 +343,6 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unix)]
     #[test]
     fn create_link_dest_is_a_regular_file() -> Result<(), std::io::Error> {
         let tmp_dir = TempDir::new("test-rusync-fsops")?;
