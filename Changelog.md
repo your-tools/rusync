@@ -1,3 +1,24 @@
+# v0.6.0
+
+* Handle errors during syncing rather than aborting the whole process
+* Add a `--errlist` option to record errors in the given file
+* Display size and time of transfer in human-readable strings at the end
+  of the transfer
+
+## Changes in the API
+
+* **breaking** The ProgressInfo now uses `&mut self`.
+
+* **breakig** In order to handle errors during syncing, you should implement the
+  `ProgressInfo::error()` method instead on relying on the returned
+  value of `Syncer::sync()`.
+
+* The `Stats` structs now also contains:
+  * The duration of the transfer
+  * The number of bytes written
+  * The number of entries that could not be synced
+
+
 # v0.5.3
 
 * Cleanup README, command line options, project description and so on.
