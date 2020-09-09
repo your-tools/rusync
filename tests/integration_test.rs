@@ -57,8 +57,8 @@ fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
     let status = Command::new("cp")
         .args(&["-R", "tests/data", &src_path.to_string_lossy()])
         .status()
-        .expect("Failed to execute process");
-    assert!(status.success());
+        .expect("Failed to start cp process");
+    assert!(status.success(), "could not copy test data");
     (src_path, dest_path)
 }
 
