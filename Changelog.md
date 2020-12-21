@@ -1,3 +1,8 @@
+# v0.7.0
+
+* Switch to anyhow for error handling. This means you can use the
+  alternate formatting (`{#?}`) to get the *cause* of each error
+
 # v0.6.0
 
 * Handle errors during syncing rather than aborting the whole process
