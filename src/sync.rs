@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::thread;
 
+use anyhow::{anyhow, Error};
+
 use crate::entry::Entry;
-use crate::error::Error;
 use crate::fsops;
 use crate::fsops::SyncOutcome::*;
 use crate::progress::{ProgressInfo, ProgressMessage};
@@ -151,17 +152,18 @@ impl Syncer {
 
         walker_thread
             .join()
-            .map_err(|e| Error::new(&format!("Could not join walker thread: {:?}", e)))?;
+            .map_err(|e| anyhow!("Could not join walker thread: {:?}", e))?;
 
         let syncer_result = syncer_thread
             .join()
-            .map_err(|e| Error::new(&format!("Could not join syncer thread: {:?}", e)))?;
+            .map_err(|e| anyhow!("Could not join syncer thread: {:?}", e))?;
+
         let progress_result = progress_thread
             .join()
-            .map_err(|e| Error::new(&format!("Could not join progress thread: {:?}", e)));
+            .map_err(|e| anyhow!("Could not join progress thread: {:?}", e))?;
 
         syncer_result?;
 
-        progress_result
+        Ok(progress_result)
     }
 }

@@ -8,10 +8,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc;
 
+use anyhow::{bail, Context, Error};
 use filetime::FileTime;
 
 use crate::entry::Entry;
-use crate::error::Error;
 use crate::progress::ProgressMessage;
 
 const BUFFER_SIZE: usize = 100 * 1024;
@@ -24,9 +24,9 @@ pub enum SyncOutcome {
     SymlinkCreated,
 }
 
-pub fn get_rel_path(a: &Path, b: &Path) -> Result<PathBuf, Error> {
-    let rel_path = pathdiff::diff_paths(&a, &b).ok_or_else(|| Error::new(""))?;
-    Ok(rel_path)
+pub fn get_rel_path(a: &Path, b: &Path) -> PathBuf {
+    pathdiff::diff_paths(&a, &b)
+        .expect("called get_rel_path on two absolute paths '{}' and '{}', a, b")
 }
 
 fn is_more_recent_than(src: &Entry, dest: &Entry) -> bool {
@@ -65,44 +65,34 @@ pub fn copy_permissions(src: &Entry, dest: &Entry) -> Result<(), Error> {
     // and we checked that right above:
     let src_meta = &src_meta.unwrap_or_else(|| panic!("src_meta was None for {:#?}", src));
     let permissions = src_meta.permissions();
-    let dest_file = File::open(dest.path()).map_err(|e| {
-        Error::new(&format!(
-            "could not open {} while copying permissions: {}",
-            dest.description(),
-            e
-        ))
+    let dest_file = File::open(dest.path()).with_context(|| {
+        format!(
+            "Could not open '{}' while copying permissions",
+            dest.description()
+        )
     })?;
-    dest_file.set_permissions(permissions).map_err(|e| {
-        Error::new(&format!(
-            "Could not set permissions for {}: {}",
-            dest.description(),
-            e
-        ))
-    })?;
+    dest_file
+        .set_permissions(permissions)
+        .with_context(|| format!("Could not set permissions for {}", dest.description()))?;
     Ok(())
 }
 
 fn copy_link(src: &Entry, dest: &Entry) -> Result<SyncOutcome, Error> {
     let src_target = std::fs::read_link(src.path())
-        .map_err(|e| Error::new(&format!("Could not read link {}: {}", src.description(), e)))?;
+        .with_context(|| format!("While copying source link '{}'", src.description()))?;
+
     let is_link = dest.is_link();
     let outcome;
     match is_link {
         Some(true) => {
-            let dest_target = std::fs::read_link(dest.path()).map_err(|e| {
-                Error::new(&format!(
-                    "Could not read link {}: {}",
-                    dest.description(),
-                    e
-                ))
-            })?;
+            let dest_target = std::fs::read_link(dest.path())
+                .with_context(|| format!("While creating target link: {}", dest.description()))?;
             if dest_target != src_target {
-                fs::remove_file(dest.path()).map_err(|e| {
-                    Error::new(&format!(
-                        "Could not remove {} while updating link: {}",
-                        dest.description(),
-                        e
-                    ))
+                fs::remove_file(dest.path()).with_context(|| {
+                    format!(
+                        "Could not remove {} while updating link",
+                        dest.description()
+                    )
                 })?;
                 outcome = SyncOutcome::SymlinkUpdated;
             } else {
@@ -111,10 +101,10 @@ fn copy_link(src: &Entry, dest: &Entry) -> Result<SyncOutcome, Error> {
         }
         Some(false) => {
             // Never safe to delete
-            return Err(Error::new(&format!(
+            bail!(
                 "Refusing to replace existing path {} by symlink",
                 dest.description()
-            )));
+            );
         }
         None => {
             // OK, dest does not exist
@@ -123,16 +113,14 @@ fn copy_link(src: &Entry, dest: &Entry) -> Result<SyncOutcome, Error> {
     }
     #[cfg(unix)]
     {
-        let symlink_result = unix::fs::symlink(&src_target, &dest.path());
-        match symlink_result {
-            Err(e) => Err(Error::new(&format!(
-                "Could not create link from {} to {}: {}",
+        unix::fs::symlink(&src_target, &dest.path()).with_context(|| {
+            format!(
+                "Could not create link from {} to {}",
                 dest.description(),
-                src.description(),
-                e
-            ))),
-            Ok(_) => Ok(outcome),
-        }
+                src.description()
+            )
+        })?;
+        Ok(outcome)
     }
 
     #[cfg(windows)]
@@ -147,34 +135,24 @@ pub fn copy_entry(
     dest: &Entry,
 ) -> Result<SyncOutcome, Error> {
     let src_path = src.path();
-    let mut src_file = File::open(src_path).map_err(|e| {
-        Error::new(&format!(
-            "Could not open {} for reading: {}",
-            src.description(),
-            e
-        ))
-    })?;
+    let mut src_file = File::open(src_path)
+        .with_context(|| format!("Could not open '{}' for reading", src.description()))?;
     let src_meta = src.metadata().expect("src_meta should not be None");
     let src_size = src_meta.len();
     let dest_path = dest.path();
-    let mut dest_file = File::create(dest_path).map_err(|e| {
-        Error::new(&format!(
-            "Could not open {} for writing: {}",
-            dest.description(),
-            e
-        ))
-    })?;
+    let mut dest_file = File::create(dest_path)
+        .with_context(|| format!("Could not open '{}' for writing", dest.description()))?;
     let mut buffer = vec![0; BUFFER_SIZE];
     loop {
-        let num_read = src_file.read(&mut buffer).map_err(|e| {
-            Error::new(&format!("Could not read from {}: {}", src.description(), e))
-        })?;
+        let num_read = src_file
+            .read(&mut buffer)
+            .with_context(|| format!("Could not read from '{}'", src.description()))?;
         if num_read == 0 {
             break;
         }
-        dest_file.write_all(&buffer[0..num_read]).map_err(|e| {
-            Error::new(&format!("Could not write to {}: {}", dest.description(), e))
-        })?;
+        dest_file
+            .write_all(&buffer[0..num_read])
+            .with_context(|| format!("Could not write to '{}'", dest.description()))?;
         let progress = ProgressMessage::Syncing {
             description: src.description().clone(),
             size: src_size as usize,

@@ -31,7 +31,6 @@
 //!
 pub mod console_info;
 mod entry;
-mod error;
 mod fsops;
 pub mod progress;
 pub mod sync;

@@ -1,3 +1,4 @@
+use anyhow::Error;
 use rusync::console_info::ConsoleProgressInfo;
 use rusync::sync::SyncOptions;
 use rusync::Syncer;
@@ -24,7 +25,7 @@ struct Opt {
     destination: PathBuf,
 }
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> Result<(), Error> {
     let opt = Opt::from_args();
     let source = &opt.source;
     if !source.is_dir() {

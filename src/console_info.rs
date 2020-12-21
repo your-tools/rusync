@@ -4,6 +4,7 @@
 
 use crate::progress::{Progress, ProgressInfo};
 use crate::sync;
+use anyhow::{Context, Error};
 use colored::Colorize;
 use humansize::{file_size_opts as options, FileSize};
 use std::fs::OpenOptions;
@@ -21,11 +22,14 @@ impl ConsoleProgressInfo {
         Self { err_file: None }
     }
 
-    pub fn with_error_list_path(error_list_path: &Path) -> Result<Self, std::io::Error> {
+    pub fn with_error_list_path(error_list_path: &Path) -> Result<Self, Error> {
         let err_file = OpenOptions::new()
             .create(true)
             .write(true)
-            .open(error_list_path)?;
+            .open(error_list_path)
+            .with_context(|| {
+                format!("Could not open errfile at '{}'", error_list_path.display())
+            })?;
         Ok(Self {
             err_file: Some(err_file),
         })
