@@ -15,6 +15,7 @@ repository = "https://github.com/dmerejkowsky/rusync"
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0.36"
 colored = "1.6"
 filetime = "0.1"
 humansize = "1.1.0"

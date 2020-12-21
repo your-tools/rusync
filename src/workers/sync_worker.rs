@@ -3,8 +3,9 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 
+use anyhow::{Context, Error};
+
 use crate::entry::Entry;
-use crate::error::Error;
 use crate::fsops;
 use crate::fsops::SyncOutcome;
 use crate::progress::ProgressMessage;
@@ -39,12 +40,10 @@ impl SyncWorker {
                 Ok(s) => ProgressMessage::DoneSyncing(s),
                 Err(e) => ProgressMessage::SyncError {
                     entry: entry.description().to_string(),
-                    details: e.to_string(),
+                    details: format!("{:#}", e),
                 },
             };
-            self.output
-                .send(progress_message)
-                .map_err(|e| Error::new(&format!("Could not send: {}", e)))?;
+            self.output.send(progress_message)?;
         }
         Ok(())
     }
@@ -52,20 +51,15 @@ impl SyncWorker {
     fn create_missing_dest_dirs(&self, rel_path: &Path) -> Result<(), Error> {
         let parent_rel_path = rel_path
             .parent()
-            .ok_or_else(|| Error::new(&format!("Could not get parent path of {:?}", rel_path)))?;
+            .expect("dest directory should have a parent");
         let to_create = self.destination.join(parent_rel_path);
-        let create_result = fs::create_dir_all(&to_create);
-        if let Err(e) = create_result {
-            return Err(Error::new(&format!(
-                "Could not create {:?}: {}",
-                to_create, e
-            )));
-        }
+        fs::create_dir_all(&to_create)
+            .with_context(|| format!("Could not create '{}'", to_create.display()))?;
         Ok(())
     }
 
     fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> Result<SyncOutcome, Error> {
-        let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source)?;
+        let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source);
         self.create_missing_dest_dirs(&rel_path)?;
         let desc = rel_path.to_string_lossy();
 
