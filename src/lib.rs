@@ -29,10 +29,6 @@
 //! }
 //! ```
 //!
-extern crate colored;
-extern crate filetime;
-extern crate term_size;
-
 pub mod console_info;
 mod entry;
 mod error;

@@ -1,8 +1,3 @@
-extern crate filetime;
-extern crate tempdir;
-
-extern crate rusync;
-
 use std::fs;
 use std::io;
 #[cfg(unix)]
