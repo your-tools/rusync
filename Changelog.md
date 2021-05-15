@@ -1,3 +1,8 @@
+# 0.7.1
+
+* Update author email
+* Development branch is now called 'main'
+
 # v0.7.0
 
 * Switch to anyhow for error handling. This means you can use the
