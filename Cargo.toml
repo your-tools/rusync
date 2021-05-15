@@ -1,7 +1,7 @@
 [package]
 name = "rusync"
 version = "0.7.0"
-authors = ["Dimitri Merejkowsky <d.merej@gmail.com>"]
+authors = ["Dimitri Merejkowsky <dimitri@dmerej.info>"]
 
 readme = "README.md"
 description = "Minimalist rsync clone in Rust"
