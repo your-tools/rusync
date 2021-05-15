@@ -131,7 +131,7 @@ fn get_terminal_width() -> usize {
 
 fn erase_line() {
     let line_width = get_terminal_width();
-    let line = vec![32 as u8; line_width as usize];
+    let line = vec![32_u8; line_width as usize];
     // We're calling from_utf8 on a string containing only spaces,
     // so calling unwrap() is safe
     print!("{}\r", String::from_utf8(line).unwrap());
