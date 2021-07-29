@@ -21,7 +21,7 @@ $ rusync test/src test/dest
 
 We do everything we can to make sure data loss is impossible, but despite our best efforts, it may still happen.
 
-Please make sure your files files are backed up if necessary before using `rusync` on sensitive data.
+Please make sure your files are backed up if necessary before using `rusync` on sensitive data.
 
 Thank you for your understanding!
 
