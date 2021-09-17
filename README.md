@@ -37,9 +37,9 @@ Thank you for your understanding!
 * Unsurprising behavior: missing directories are created
   on the fly, files are only copied if:
 
-  * Destination is missing
-  * Older than the source
-  * Or size is different
+  * destination is missing
+  * destination exists but is older than the source
+  * or source and destination have different sizes
 
 # Command line options
 
