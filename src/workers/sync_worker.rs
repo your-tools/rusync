@@ -59,17 +59,17 @@ impl SyncWorker {
     }
 
     fn sync(&self, src_entry: &Entry, opts: SyncOptions) -> Result<SyncOutcome, Error> {
-        let rel_path = fsops::get_rel_path(&src_entry.path(), &self.source);
+        let rel_path = fsops::get_rel_path(src_entry.path(), &self.source);
         self.create_missing_dest_dirs(&rel_path)?;
         let desc = rel_path.to_string_lossy();
 
         let dest_path = self.destination.join(&rel_path);
         let dest_entry = Entry::new(&desc, &dest_path);
-        let outcome = fsops::sync_entries(&self.output, &src_entry, &dest_entry)?;
+        let outcome = fsops::sync_entries(&self.output, src_entry, &dest_entry)?;
         #[cfg(unix)]
         {
             if opts.preserve_permissions {
-                fsops::copy_permissions(&src_entry, &dest_entry)?;
+                fsops::copy_permissions(src_entry, &dest_entry)?;
             }
         }
         Ok(outcome)

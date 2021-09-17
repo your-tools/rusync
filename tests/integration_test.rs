@@ -35,7 +35,7 @@ fn is_executable(path: &Path) -> bool {
 #[cfg(unix)]
 fn assert_executable(path: &Path) {
     assert!(
-        is_executable(&path),
+        is_executable(path),
         "{:?} does not appear to be executable",
         path
     );
@@ -43,7 +43,7 @@ fn assert_executable(path: &Path) {
 
 #[cfg(unix)]
 fn assert_not_executable(path: &Path) {
-    assert!(!is_executable(&path), "{:?} appears to be executable", path);
+    assert!(!is_executable(path), "{:?} appears to be executable", path);
 }
 
 fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
@@ -76,13 +76,13 @@ fn new_test_syncer(src: &Path, dest: &Path) -> rusync::Syncer {
     let options = rusync::SyncOptions {
         preserve_permissions: true,
     };
-    rusync::Syncer::new(&src, &dest, options, Box::new(dummy_progress_info))
+    rusync::Syncer::new(src, dest, options, Box::new(dummy_progress_info))
 }
 
 #[test]
 fn fresh_copy() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
-    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let (src_path, dest_path) = setup_test(tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
     let outcome = syncer.sync();
     assert!(outcome.is_ok());
@@ -97,7 +97,7 @@ fn fresh_copy() -> Result<(), std::io::Error> {
 #[test]
 fn skip_up_to_date_files() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
-    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let (src_path, dest_path) = setup_test(tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
 
     let stats = syncer.sync().unwrap();
@@ -116,12 +116,12 @@ fn skip_up_to_date_files() -> Result<(), std::io::Error> {
 #[cfg(unix)]
 fn preserve_permissions() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
-    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let (src_path, dest_path) = setup_test(tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
     syncer.sync().unwrap();
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
-    assert_executable(&dest_exe);
+    assert_executable(dest_exe);
     Ok(())
 }
 
@@ -129,7 +129,7 @@ fn preserve_permissions() -> Result<(), std::io::Error> {
 #[cfg(unix)]
 fn do_not_preserve_permissions() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
-    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let (src_path, dest_path) = setup_test(tmp_dir.path());
     let options = rusync::SyncOptions {
         preserve_permissions: false,
     };
@@ -142,14 +142,14 @@ fn do_not_preserve_permissions() -> Result<(), std::io::Error> {
     syncer.sync().unwrap();
 
     let dest_exe = &dest_path.join("a_dir/foo.exe");
-    assert_not_executable(&dest_exe);
+    assert_not_executable(dest_exe);
     Ok(())
 }
 
 #[test]
 fn rewrite_partially_written_files() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
-    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let (src_path, dest_path) = setup_test(tmp_dir.path());
     let src_top = src_path.join("top.txt");
     let expected = fs::read_to_string(&src_top)?;
 
@@ -169,7 +169,7 @@ fn rewrite_partially_written_files() -> Result<(), std::io::Error> {
 #[test]
 fn dest_read_only() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
-    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let (src_path, dest_path) = setup_test(tmp_dir.path());
     fs::create_dir_all(&dest_path)?;
 
     let dest_top = dest_path.join("top.txt");
@@ -192,7 +192,7 @@ fn dest_read_only() -> Result<(), std::io::Error> {
 #[cfg(unix)]
 fn broken_link_in_src() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new("test-rusync")?;
-    let (src_path, dest_path) = setup_test(&tmp_dir.path());
+    let (src_path, dest_path) = setup_test(tmp_dir.path());
     let src_broken_link = &src_path.join("broken");
     unix::fs::symlink("no-such", &src_broken_link)?;
 

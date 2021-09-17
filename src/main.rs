@@ -41,7 +41,7 @@ fn main() -> Result<(), Error> {
     let options = SyncOptions {
         preserve_permissions: !opt.no_preserve_permissions,
     };
-    let syncer = Syncer::new(&source, &destination, options, Box::new(console_info));
+    let syncer = Syncer::new(source, destination, options, Box::new(console_info));
     let stats = syncer.sync();
     match stats {
         Err(err) => {

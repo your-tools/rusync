@@ -61,7 +61,7 @@ mod tests {
     #[test]
     fn new_entry_with_non_existing_path() {
         let path = Path::new("/path/to/nosuch.txt");
-        let entry = Entry::new("nosuch", &path);
+        let entry = Entry::new("nosuch", path);
 
         assert!(!entry.exists());
         assert!(entry.metadata.is_none());
@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn new_entry_with_existing_path() {
         let path = Path::new(file!());
-        let entry = Entry::new("entry.rs", &path);
+        let entry = Entry::new("entry.rs", path);
 
         assert!(entry.exists());
         assert!(entry.metadata.is_some());
