@@ -25,4 +25,4 @@ structopt = "0.2.8"
 term_size = "0.3"
 
 [dev-dependencies]
-tempdir = "0.3"
+tempfile = "3.2.0"

@@ -195,11 +195,11 @@ pub fn sync_entries(
 mod tests {
     use super::*;
     use std::sync::mpsc::channel;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn create_file() -> Result<(), std::io::Error> {
-        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_dir = TempDir::new()?;
         let tmp_path = tmp_dir.path();
         let src = &tmp_path.join("src.txt");
         let contents = "some contents";
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn overwrite_file() -> Result<(), std::io::Error> {
-        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_dir = TempDir::new()?;
         let tmp_path = tmp_dir.path();
         let src = &tmp_path.join("src.txt");
         let new_contents = "new and shiny";
@@ -245,7 +245,7 @@ mod symlink_tests {
     use std::os::unix;
     use std::path::Path;
     use std::path::PathBuf;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     fn create_link(src: &str, dest: &Path) -> Result<(), std::io::Error> {
         unix::fs::symlink(&src, &dest)
@@ -279,7 +279,7 @@ mod symlink_tests {
 
     #[test]
     fn create_link_when_dest_does_not_exist() -> Result<(), std::io::Error> {
-        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_dir = TempDir::new()?;
         let tmp_path = tmp_dir.path();
         let src_link = setup_sync_link_test(tmp_path)?;
 
@@ -291,7 +291,7 @@ mod symlink_tests {
 
     #[test]
     fn create_link_dest_is_a_broken_link() -> Result<(), std::io::Error> {
-        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_dir = TempDir::new()?;
         let tmp_path = tmp_dir.path();
         let src_link = setup_sync_link_test(tmp_path)?;
 
@@ -305,7 +305,7 @@ mod symlink_tests {
 
     #[test]
     fn create_link_dest_doest_not_point_to_correct_location() -> Result<(), std::io::Error> {
-        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_dir = TempDir::new()?;
         let tmp_path = tmp_dir.path();
         let src_link = setup_sync_link_test(tmp_path)?;
 
@@ -321,7 +321,7 @@ mod symlink_tests {
 
     #[test]
     fn create_link_dest_is_a_regular_file() -> Result<(), std::io::Error> {
-        let tmp_dir = TempDir::new("test-rusync-fsops")?;
+        let tmp_dir = TempDir::new()?;
         let tmp_path = tmp_dir.path();
         let src_link = setup_sync_link_test(tmp_path)?;
 
