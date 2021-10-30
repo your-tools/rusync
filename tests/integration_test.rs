@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use filetime::FileTime;
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 use rusync::progress::ProgressInfo;
 
@@ -81,7 +81,7 @@ fn new_test_syncer(src: &Path, dest: &Path) -> rusync::Syncer {
 
 #[test]
 fn fresh_copy() -> Result<(), std::io::Error> {
-    let tmp_dir = TempDir::new("test-rusync")?;
+    let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
     let outcome = syncer.sync();
@@ -96,7 +96,7 @@ fn fresh_copy() -> Result<(), std::io::Error> {
 
 #[test]
 fn skip_up_to_date_files() -> Result<(), std::io::Error> {
-    let tmp_dir = TempDir::new("test-rusync")?;
+    let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
 
@@ -115,7 +115,7 @@ fn skip_up_to_date_files() -> Result<(), std::io::Error> {
 #[test]
 #[cfg(unix)]
 fn preserve_permissions() -> Result<(), std::io::Error> {
-    let tmp_dir = TempDir::new("test-rusync")?;
+    let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let syncer = new_test_syncer(&src_path, &dest_path);
     syncer.sync().unwrap();
@@ -128,7 +128,7 @@ fn preserve_permissions() -> Result<(), std::io::Error> {
 #[test]
 #[cfg(unix)]
 fn do_not_preserve_permissions() -> Result<(), std::io::Error> {
-    let tmp_dir = TempDir::new("test-rusync")?;
+    let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let options = rusync::SyncOptions {
         preserve_permissions: false,
@@ -148,7 +148,7 @@ fn do_not_preserve_permissions() -> Result<(), std::io::Error> {
 
 #[test]
 fn rewrite_partially_written_files() -> Result<(), std::io::Error> {
-    let tmp_dir = TempDir::new("test-rusync")?;
+    let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let src_top = src_path.join("top.txt");
     let expected = fs::read_to_string(&src_top)?;
@@ -168,7 +168,7 @@ fn rewrite_partially_written_files() -> Result<(), std::io::Error> {
 
 #[test]
 fn dest_read_only() -> Result<(), std::io::Error> {
-    let tmp_dir = TempDir::new("test-rusync")?;
+    let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     fs::create_dir_all(&dest_path)?;
 
@@ -191,7 +191,7 @@ fn dest_read_only() -> Result<(), std::io::Error> {
 #[test]
 #[cfg(unix)]
 fn broken_link_in_src() -> Result<(), std::io::Error> {
-    let tmp_dir = TempDir::new("test-rusync")?;
+    let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let src_broken_link = &src_path.join("broken");
     unix::fs::symlink("no-such", &src_broken_link)?;
