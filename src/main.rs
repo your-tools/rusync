@@ -1,32 +1,32 @@
 use anyhow::Error;
+use clap::Parser;
 use rusync::console_info::ConsoleProgressInfo;
 use rusync::sync::SyncOptions;
 use rusync::Syncer;
 use std::path::PathBuf;
 use std::process;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "rusync")]
+#[derive(Debug, Parser)]
+#[clap(name = "rusync")]
 struct Opt {
-    #[structopt(
+    #[clap(
         long = "no-perms",
         help = "Do not preserve permissions (no-op on Windows)"
     )]
     no_preserve_permissions: bool,
 
-    #[structopt(long = "err-list", help = "Write errors to the given file")]
+    #[clap(long = "err-list", help = "Write errors to the given file")]
     error_list_path: Option<PathBuf>,
 
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     source: PathBuf,
 
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     destination: PathBuf,
 }
 
 fn main() -> Result<(), Error> {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let source = &opt.source;
     if !source.is_dir() {
         eprintln!("{} is not a directory", source.to_string_lossy());
