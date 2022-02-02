@@ -18,7 +18,7 @@ edition = "2021"
 anyhow = "1.0.36"
 clap = {version = "3.0.5", features = ["derive"] }
 colored = "1.6"
-filetime = "0.1"
+filetime = "0.2.15"
 humansize = "1.1.0"
 humantime = "2.0.1"
 pathdiff = "0.1.0"

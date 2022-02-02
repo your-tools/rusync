@@ -61,9 +61,9 @@ fn make_recent(path: &Path) -> io::Result<()> {
     let metadata = fs::metadata(&path)?;
     let atime = FileTime::from_last_access_time(&metadata);
     let mtime = FileTime::from_last_modification_time(&metadata);
-    let mut epoch = mtime.seconds_relative_to_1970();
+    let mut epoch = mtime.unix_seconds();
     epoch += 1;
-    let mtime = FileTime::from_seconds_since_1970(epoch, 0);
+    let mtime = FileTime::from_unix_time(epoch, 0);
     filetime::set_file_times(&path, atime, mtime)?;
     Ok(())
 }
