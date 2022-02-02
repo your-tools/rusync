@@ -21,7 +21,7 @@ colored = "1.6"
 filetime = "0.2.15"
 humansize = "1.1.0"
 humantime = "2.0.1"
-pathdiff = "0.1.0"
+pathdiff = "0.2.1"
 term_size = "0.3"
 
 [dev-dependencies]
