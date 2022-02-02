@@ -20,7 +20,7 @@ search = 'version = "{current_version}"'
 
 [[before_push]]
 name = "Check changelog"
-cmd = "python tools/check-changelog.py {new_version}"
+cmd = "grep -q {new_version} Changelog.md"
 
 [[before_push]]
 name = "Run tests"
