@@ -141,7 +141,7 @@ fn human_seconds(s: usize) -> String {
     let hours = s / 3600;
     let minutes = (s / 60) % 60;
     let seconds = s % 60;
-    return format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
 
 fn truncate_lossy(text: &str, maxsize: usize) -> String {

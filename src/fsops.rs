@@ -16,7 +16,7 @@ use crate::progress::ProgressMessage;
 
 const BUFFER_SIZE: usize = 100 * 1024;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum SyncOutcome {
     UpToDate,
     FileCopied { size: u64 },
