@@ -11,6 +11,7 @@ use std::fs::OpenOptions;
 use std::io;
 use std::io::Write;
 use std::path::Path;
+use terminal_size::{terminal_size, Width};
 
 #[derive(Debug)]
 pub struct ConsoleProgressInfo {
@@ -121,11 +122,10 @@ impl Default for ConsoleProgressInfo {
 }
 
 fn get_terminal_width() -> usize {
-    if let Some((w, _)) = term_size::dimensions() {
-        return w;
+    if let Some((Width(w), _)) = terminal_size() {
+        return w as usize;
     }
-    // We're likely not a tty here, so this is a good enough
-    // default:
+    // We're likely not a tty here, so this is a good enough default:
     80
 }
 

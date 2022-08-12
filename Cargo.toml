@@ -22,7 +22,7 @@ filetime = "0.2.17"
 humansize = "1.1.1"
 humantime = "2.1.0"
 pathdiff = "0.2.1"
-term_size = "0.3.2"
+terminal_size = "0.2.1"
 
 [dev-dependencies]
 tempfile = "3.3.0"
