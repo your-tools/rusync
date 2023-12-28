@@ -35,7 +35,7 @@ impl WalkWorker {
         let mut subdirs: Vec<PathBuf> = vec![self.source.to_path_buf()];
         while let Some(subdir) = subdirs.pop() {
             // We just checked that subdirs is *not* empty, so calling pop() is safe
-            
+
             let entries = fs::read_dir(&subdir).with_context(|| {
                 format!(
                     "While walking source, could not read directory '{}'",
