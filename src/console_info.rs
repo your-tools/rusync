@@ -72,7 +72,7 @@ impl ProgressInfo for ConsoleProgressInfo {
             pad = file_width as usize,
             filename = current_file
         );
-        let file_percent = ((progress.file_done * 100) as usize) / progress.file_size;
+        let file_percent = (progress.file_done * 100) / progress.file_size;
         print!(
             "{:>3}% {}/{} {} {:<}\r",
             file_percent, index, num_files, current_file, eta_str
@@ -131,7 +131,7 @@ fn get_terminal_width() -> usize {
 
 fn erase_line() {
     let line_width = get_terminal_width();
-    let line = vec![32_u8; line_width as usize];
+    let line = vec![32_u8; line_width];
     // We're calling from_utf8 on a string containing only spaces,
     // so calling unwrap() is safe
     print!("{}\r", String::from_utf8(line).unwrap());

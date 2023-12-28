@@ -109,7 +109,7 @@ fn copy_link(src: &Entry, dest: &Entry) -> Result<SyncOutcome, Error> {
     }
     #[cfg(unix)]
     {
-        unix::fs::symlink(&src_target, &dest.path()).with_context(|| {
+        unix::fs::symlink(&src_target, dest.path()).with_context(|| {
             format!(
                 "Could not create link from {} to {}",
                 dest.description(),
@@ -164,7 +164,7 @@ fn has_different_size(src: &Entry, dest: &Entry) -> bool {
     let dest_meta = dest.metadata();
     match dest_meta {
         None => true,
-        Some(dest_meta) => (dest_meta.len() != src_meta.len()),
+        Some(dest_meta) => dest_meta.len() != src_meta.len(),
     }
 }
 
@@ -199,7 +199,7 @@ mod tests {
         let tmp_path = tmp_dir.path();
         let src = &tmp_path.join("src.txt");
         let contents = "some contents";
-        std::fs::write(&src, &contents)?;
+        std::fs::write(src, contents)?;
         let src_entry = Entry::new("src.txt", src);
         let dest = &tmp_path.join("dest.txt");
         let dest_entry = Entry::new("dest.txt", dest);
@@ -207,7 +207,7 @@ mod tests {
         let (progress_output, _) = channel::<ProgressMessage>();
         sync_entries(&progress_output, &src_entry, &dest_entry).unwrap();
 
-        let actual = std::fs::read_to_string(&dest)?;
+        let actual = std::fs::read_to_string(dest)?;
         assert_eq!(actual, contents);
         Ok(())
     }
@@ -218,17 +218,17 @@ mod tests {
         let tmp_path = tmp_dir.path();
         let src = &tmp_path.join("src.txt");
         let new_contents = "new and shiny";
-        std::fs::write(&src, &new_contents)?;
+        std::fs::write(src, new_contents)?;
         let src_entry = Entry::new("src.txt", src);
         let dest = &tmp_path.join("dest.txt");
         let old_contents = "old";
         let dest_entry = Entry::new("dest.txt", dest);
-        std::fs::write(&dest, &old_contents)?;
+        std::fs::write(dest, old_contents)?;
 
         let (progress_output, _) = channel::<ProgressMessage>();
         sync_entries(&progress_output, &src_entry, &dest_entry).unwrap();
 
-        let actual = std::fs::read_to_string(&dest)?;
+        let actual = std::fs::read_to_string(dest)?;
         assert_eq!(actual, new_contents);
         Ok(())
     }
@@ -244,7 +244,7 @@ mod symlink_tests {
     use tempfile::TempDir;
 
     fn create_link(src: &str, dest: &Path) -> Result<(), std::io::Error> {
-        unix::fs::symlink(&src, &dest)
+        unix::fs::symlink(src, dest)
     }
 
     fn create_file(path: &Path) -> Result<(), std::io::Error> {
@@ -268,7 +268,7 @@ mod symlink_tests {
 
     fn sync_src_link(tmp_path: &Path, src_link: &Path, dest: &str) -> Result<SyncOutcome, Error> {
         let src_entry = Entry::new("src", src_link);
-        let dest_path = &tmp_path.join(&dest);
+        let dest_path = &tmp_path.join(dest);
         let dest_entry = Entry::new(dest, dest_path);
         copy_link(&src_entry, &dest_entry)
     }

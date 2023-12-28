@@ -17,7 +17,7 @@ fn assert_same_contents(a: &Path, b: &Path) {
     assert!(a.exists(), "{:?} does not exist", a);
     assert!(b.exists(), "{:?} does not exist", b);
     let status = Command::new("diff")
-        .args(&[a, b])
+        .args([a, b])
         .status()
         .expect("Failed to execute process");
     assert!(status.success(), "{:?} and {:?} differ", a, b)
@@ -25,7 +25,7 @@ fn assert_same_contents(a: &Path, b: &Path) {
 
 #[cfg(unix)]
 fn is_executable(path: &Path) -> bool {
-    let metadata = std::fs::metadata(&path)
+    let metadata = std::fs::metadata(path)
         .unwrap_or_else(|e| panic!("Could not get metadata of {:?}: {}", path, e));
     let permissions = metadata.permissions();
     let mode = permissions.mode();
@@ -50,7 +50,7 @@ fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
     let src_path = tmp_path.join("src");
     let dest_path = tmp_path.join("dest");
     let status = Command::new("cp")
-        .args(&["-R", "tests/data", &src_path.to_string_lossy()])
+        .args(["-R", "tests/data", &src_path.to_string_lossy()])
         .status()
         .expect("Failed to start cp process");
     assert!(status.success(), "could not copy test data");
@@ -58,13 +58,13 @@ fn setup_test(tmp_path: &Path) -> (PathBuf, PathBuf) {
 }
 
 fn make_recent(path: &Path) -> io::Result<()> {
-    let metadata = fs::metadata(&path)?;
+    let metadata = fs::metadata(path)?;
     let atime = FileTime::from_last_access_time(&metadata);
     let mtime = FileTime::from_last_modification_time(&metadata);
     let mut epoch = mtime.unix_seconds();
     epoch += 1;
     let mtime = FileTime::from_unix_time(epoch, 0);
-    filetime::set_file_times(&path, atime, mtime)?;
+    filetime::set_file_times(path, atime, mtime)?;
     Ok(())
 }
 
@@ -151,7 +151,7 @@ fn rewrite_partially_written_files() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let src_top = src_path.join("top.txt");
-    let expected = fs::read_to_string(&src_top)?;
+    let expected = fs::read_to_string(src_top)?;
 
     let syncer = new_test_syncer(&src_path, &dest_path);
     syncer.sync().unwrap();
@@ -194,7 +194,7 @@ fn broken_link_in_src() -> Result<(), std::io::Error> {
     let tmp_dir = TempDir::new()?;
     let (src_path, dest_path) = setup_test(tmp_dir.path());
     let src_broken_link = &src_path.join("broken");
-    unix::fs::symlink("no-such", &src_broken_link)?;
+    unix::fs::symlink("no-such", src_broken_link)?;
 
     let syncer = new_test_syncer(&src_path, &dest_path);
     let result = syncer.sync();
